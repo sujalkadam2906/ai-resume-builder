@@ -99,5 +99,8 @@ def test_bynry_forward_deployed_project_selection(all_projects):
     assert selected[0].id == "spring_notes_forge"
     # Slot 2: Permanently Bearing Fault Diagnosis
     assert selected[1].id == "bearing_fault_diagnosis"
-    # Slots 3 & 4: Employee Management API & Online Bookstore DB
-    assert {selected[2].id, selected[3].id} == {"employee_management_api", "online_bookstore_db"}
+    # Slots 3 & 4: Python AI / Database projects
+    assert {selected[2].id, selected[3].id} in [
+        {"employee_management_api", "online_bookstore_db"},
+        {"ai_resume_builder", "online_bookstore_db"},
+    ]

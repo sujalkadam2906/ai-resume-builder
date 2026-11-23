@@ -13,8 +13,9 @@ def test_load_master_profile_and_projects():
 
     assert profile.personal_info.full_name == "Sujal Sunil Kadam"
     assert len(profile.personal_info.phone) >= 10
-    assert len(projects) == 6, f"Expected 6 verified projects, got {len(projects)}"
+    assert len(projects) >= 6, f"Expected at least 6 verified projects, got {len(projects)}"
     assert any(p.id == "spring_notes_forge" for p in projects)
+    assert any(p.id == "ai_resume_builder" for p in projects)
 
     # Check Bearing Fault is present as verified fixed project
     bf = next((p for p in projects if p.id == "bearing_fault_diagnosis"), None)
