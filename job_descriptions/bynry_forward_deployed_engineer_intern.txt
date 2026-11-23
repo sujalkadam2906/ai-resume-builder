@@ -1,0 +1,24 @@
+Company: Bynry
+Job Title: Forward Deployed Engineer Intern
+Location: Pune, Maharashtra (Hybrid / Onsite)
+
+About the Role:
+Bynry is seeking a Forward Deployed Engineer Intern to bridge the gap between engineering, product operations, and customer deployments. You will design, build, and deploy custom workflow automations, integrate REST APIs, manage relational data pipelines in PostgreSQL, and interface directly with enterprise client stakeholders to ensure seamless integration and operational reliability.
+
+Required Skills:
+- Python programming for workflow automation, scripting, and data processing
+- REST API integration, webhook implementation, and HTTP service communication
+- Relational databases including PostgreSQL and MySQL, schema analysis, and complex SQL queries
+- Automated testing and test-driven verification using Pytest
+- Document generation, pipeline automation, and automated validation (ReportLab, Playwright)
+- Understanding of Identity & Access Management (IAM), security best practices, and enterprise documentation
+- Version control with Git / GitHub and structured code review workflows
+- Strong cross-functional communication and client-facing technical problem solving
+
+Responsibilities:
+- Build, test, and maintain automated Python data processing pipelines and workflow integration services
+- Design and consume RESTful APIs connecting client enterprise systems with core platforms
+- Write performant SQL queries, analyze relational data structures, and handle data migrations in PostgreSQL
+- Develop end-to-end unit and integration test suites using Pytest to guarantee system reliability
+- Create comprehensive technical documentation, client architecture diagrams, and IAM alignment reports
+- Collaborate with deployment managers, solution architects, and technical clients to resolve deployment blockers

@@ -1,0 +1,19 @@
+Job Title: Python & AI Automation Engineer
+Company: Persistent Systems
+Location: Pune, Maharashtra, India
+
+About the Role:
+We are looking for a motivated Python & AI Automation Engineer to develop intelligent data pipelines, automation agents, and machine learning models. You will work closely with generative AI APIs (Google Gemini, Claude), signal processing algorithms, and data analytics tools.
+
+Required Technical Skills:
+- Python 3.x, OOP, Data Structures, Asynchronous Programming.
+- Machine Learning & Data Science: NumPy, Pandas, scikit-learn, Feature Engineering, Signal Processing.
+- Generative AI & LLM Integration: Google Gemini API, Prompt Engineering, Structured JSON parsing.
+- REST APIs, Web Scraping, Test Automation with Pytest & Playwright.
+- Databases: PostgreSQL, MongoDB, SQL queries.
+- Cloud & DevOps: AWS, Docker fundamentals, Git/GitHub.
+
+Key Responsibilities:
+- Build machine learning classifiers and diagnostic pipelines for automated feature extraction and failure detection.
+- Develop AI-driven automation workflows with Gemini API and structured outputs.
+- Build reliable test suites with Pytest and ensure automated quality assurance.

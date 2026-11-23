@@ -1,0 +1,118 @@
+# JOB DESCRIPTION
+
+## Associate Software Engineer – Application Development
+
+**Company:** Not specified (Composite benchmark JD)
+**Location:** Pune, India / Other major Indian technology locations
+**Experience:** 0–2 Years
+**Employment Type:** Full-time
+**Eligibility:** Fresh Graduates / Entry-Level Candidates
+
+### About the Role
+
+We are looking for motivated and technically curious Associate Software Engineers to join our application development team.
+
+The candidate will contribute to developing, testing and maintaining software applications, backend services, APIs and web-based solutions.
+
+This role is suitable for fresh graduates with practical project experience, strong programming fundamentals, database knowledge and an interest in learning modern software development technologies.
+
+Candidates should demonstrate problem-solving ability, attention to detail, willingness to learn and the ability to work collaboratively.
+
+### Key Responsibilities
+
+1. Develop, test and maintain software applications using Java, Python, JavaScript or other relevant programming languages.
+
+2. Apply Object-Oriented Programming (OOP), data structures, exception handling and fundamental software engineering concepts.
+
+3. Develop backend modules, implement business logic and build RESTful APIs using frameworks such as Spring Boot, FastAPI, Django or Node.js.
+
+4. Work with HTTP, JSON, API requests and responses, and integrate backend services with frontend applications.
+
+5. Design and interact with relational databases such as MySQL and PostgreSQL. Write SQL queries involving CRUD operations, joins, aggregations and data validation.
+
+6. Develop and maintain responsive web interfaces using HTML, CSS, JavaScript and modern frontend frameworks such as React.
+
+7. Write and execute unit tests, integration tests and functional test cases using appropriate testing frameworks.
+
+8. Debug application issues, investigate errors, identify root causes and implement suitable fixes.
+
+9. Use Git and GitHub for version control, source-code management and collaborative development.
+
+10. Participate in code reviews, technical discussions and software development lifecycle activities.
+
+11. Understand project requirements and translate them into maintainable technical solutions.
+
+12. Prepare and maintain technical documentation covering application architecture, API endpoints, implementation details, testing procedures and setup instructions.
+
+13. Collaborate with developers, testers and cross-functional teams to deliver reliable software features.
+
+14. Learn and apply modern development practices involving cloud platforms, deployment automation and application reliability.
+
+### Required Technical Skills
+
+**Programming Fundamentals**
+- Strong fundamentals in at least one programming language such as Java, Python or JavaScript.
+- Understanding of OOP concepts, data structures, algorithms and exception handling.
+- Ability to write clean, readable and maintainable code.
+
+**Backend & APIs**
+- Understanding of REST API architecture.
+- Knowledge of HTTP methods, status codes, JSON and request/response handling.
+- Basic understanding of backend application development.
+- Familiarity with at least one backend framework is preferred.
+
+**Databases**
+- Understanding of relational database concepts.
+- Basic SQL queries, joins, aggregations and CRUD operations.
+- Familiarity with MySQL, PostgreSQL or similar databases.
+
+**Frontend Development**
+- Understanding of HTML, CSS and JavaScript.
+- Basic exposure to React or another modern frontend framework is preferred.
+
+**Development Tools**
+- Git and GitHub.
+- Basic debugging and testing practices.
+- Familiarity with an IDE such as VS Code or IntelliJ IDEA.
+
+### Preferred Skills
+
+- Java with Spring Boot, Spring MVC and Spring Data JPA.
+- Python with FastAPI, Flask or Django.
+- JavaScript, TypeScript and React.
+- MySQL, PostgreSQL or MongoDB.
+- JUnit, Pytest, Vitest or Postman.
+- Maven or Gradle.
+- AWS, Azure or Google Cloud fundamentals.
+- Docker and basic Kubernetes concepts.
+- CI/CD and application deployment fundamentals.
+- API integrations and automation workflows.
+- Exposure to LLM APIs or AI-assisted development tools.
+
+These are additional advantages, not mandatory requirements.
+
+### Professional Competencies
+
+- Strong logical thinking and analytical problem-solving.
+- Good communication and teamwork.
+- Ability to understand technical requirements.
+- Attention to detail and software quality.
+- Willingness to learn new technologies.
+- Ability to document and explain technical work.
+- Ownership of assigned tasks and commitment to completing them.
+
+### Education
+
+Bachelor's degree in Engineering, Computer Applications, Computer Science, Information Technology or an equivalent technical discipline.
+
+Fresh graduates with relevant academic, personal or portfolio projects are encouraged to apply.
+
+### Expected Outcomes
+
+- Contribute to developing and maintaining application features.
+- Build or integrate working APIs and database-driven functionality.
+- Write and execute meaningful automated tests.
+- Identify and resolve software defects.
+- Follow Git-based development practices.
+- Produce clear technical documentation.
+- Demonstrate the ability to explain implemented projects and technical decisions.

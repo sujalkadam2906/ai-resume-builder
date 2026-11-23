@@ -1,0 +1,143 @@
+{
+  "_notice": "FICTIONAL DEMONSTRATION DATA — NOT A REAL CANDIDATE.",
+  "personal_info": {
+    "full_name": "Aarav Sharma (Demo Candidate)",
+    "display_name": "AARAV SHARMA",
+    "phone": "+91 9876543210",
+    "email": "aarav.sharma.demo@example.com",
+    "location": "Bengaluru, Karnataka, India",
+    "open_to_relocate": true,
+    "immediate_joiner": true
+  },
+  "links": {
+    "linkedin": {
+      "url": "https://www.linkedin.com/in/aarav-sharma-demo",
+      "display": "linkedin.com/in/aarav-sharma-demo"
+    },
+    "github": {
+      "url": "https://github.com/aaravsharma-demo",
+      "display": "github.com/aaravsharma-demo"
+    },
+    "portfolio": {
+      "url": "https://aarav-demo-portfolio.vercel.app",
+      "display": "aarav-demo-portfolio.vercel.app"
+    }
+  },
+  "headlines": {
+    "general": "Junior Frontend Developer | React & TypeScript Specialist",
+    "primary": "Frontend Engineer | UI/UX & Responsive Web Design"
+  },
+  "summaries": {
+    "master": "Frontend developer with 1 year of practical project experience building responsive, accessible web applications using React 18, TypeScript, and Tailwind CSS. Experienced in automated component testing with Vitest and REST API integration."
+  },
+  "education": [
+    {
+      "degree": "B.E. in Computer Science and Engineering",
+      "institution": "Pune Institute of Computer Technology",
+      "duration": "2021\u20132025",
+      "start_year": 2021,
+      "end_year": 2025,
+      "cgpa": "8.50/10",
+      "score": "8.50",
+      "scale": "10",
+      "source": "demo_synthetic"
+    }
+  ],
+  "technical_skills": {
+    "languages": [
+      "JavaScript (ES6+)",
+      "TypeScript",
+      "HTML5",
+      "CSS3",
+      "Python (Basic)"
+    ],
+    "backend_and_java": [
+      "Node.js",
+      "Express.js",
+      "REST APIs",
+      "JSON Handling"
+    ],
+    "databases_and_sql": [
+      "PostgreSQL (Basic)",
+      "IndexedDB",
+      "localStorage",
+      "MongoDB"
+    ],
+    "cloud_devops_and_deployment": [
+      "Vercel",
+      "Netlify",
+      "GitHub Actions",
+      "Docker (Fundamentals)"
+    ],
+    "frontend": [
+      "React 18",
+      "TypeScript",
+      "Tailwind CSS",
+      "Redux Toolkit",
+      "Next.js",
+      "Responsive Web Design",
+      "Figma"
+    ],
+    "core_cs_and_ml": [
+      "Data Structures & Algorithms",
+      "OOP",
+      "DBMS Fundamentals",
+      "Web Accessibility (WAI-ARIA)",
+      "SDLC"
+    ],
+    "testing_and_tools": [
+      "Git",
+      "GitHub",
+      "Vitest",
+      "React Testing Library",
+      "Playwright",
+      "Vite",
+      "Webpack",
+      "Postman"
+    ]
+  },
+  "leadership_and_experience": [
+    {
+      "id": "gdsc_lead",
+      "role": "Frontend Track Lead",
+      "organization": "Google Developer Student Clubs (GDSC)",
+      "duration": "2023\u20132024",
+      "metrics": "Conducted 8 hands-on React workshops for 400+ attendees",
+      "description": "Led frontend web development workshops covering React, TypeScript, and modern responsive CSS for student developers.",
+      "bullets": [
+        "Conducted 8 hands-on React workshops for 400+ attendees, guiding students through production frontend architectures."
+      ],
+      "source": "demo_synthetic"
+    }
+  ],
+  "professional_development": [
+    {
+      "id": "meta_frontend_sim",
+      "title": "Meta Frontend Developer Professional Certificate Simulation",
+      "organization": "Meta / Coursera",
+      "date": "August 2024",
+      "bullets": [
+        "Completed comprehensive modules on responsive web UI design, accessibility, and client-side performance optimization.",
+        "Built accessible web components validating compliance with WCAG 2.1 AA contrast and screen-reader standards."
+      ],
+      "source": "demo_synthetic"
+    }
+  ],
+  "achievements": [
+    {
+      "id": "hackathon_first",
+      "title": "First Place \u2014 State Level Hackathon 2024",
+      "description": "Won 1st place among 120 teams for building an accessible telemedicine patient portal in React.",
+      "bullets": [
+        "Won 1st place among 120 teams for building an accessible telemedicine patient portal in React."
+      ],
+      "source": "demo_synthetic"
+    }
+  ],
+  "research_publications": [],
+  "certifications": [
+    "Meta Certified Frontend Developer",
+    "Responsive Web Design \u2014 freeCodeCamp",
+    "TypeScript Fundamentals \u2014 ExecuteProgram"
+  ]
+}

@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 500" width="100%" height="100%" style="background:#FFFFFF; font-family:'Segoe UI', Helvetica, Arial, sans-serif;">
+  <defs>
+    <linearGradient id="tealGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#174A45" />
+      <stop offset="100%" stop-color="#0F332F" />
+    </linearGradient>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#C47A42" />
+      <stop offset="100%" stop-color="#A65E28" />
+    </linearGradient>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="#000000" flood-opacity="0.08" />
+    </filter>
+  </defs>
+
+  <!-- Title -->
+  <rect x="30" y="20" width="820" height="50" rx="8" fill="url(#tealGrad)" filter="url(#shadow)" />
+  <text x="440" y="44" fill="#FFFFFF" font-size="16" font-weight="bold" text-anchor="middle">MULTI-PROFILE SECURITY &amp; ZERO-LEAKAGE BOUNDARY</text>
+  <text x="440" y="60" fill="#E9F0ED" font-size="11" text-anchor="middle">Filesystem Directory Partitioning · SHA-256 Migration Integrity · Path Traversal Defense</text>
+
+  <!-- Central Security Shield / Boundary -->
+  <line x1="440" y1="95" x2="440" y2="475" stroke="#C47A42" stroke-width="2.5" stroke-dasharray="6,4" />
+  <rect x="380" y="260" width="120" height="34" rx="17" fill="url(#shieldGrad)" filter="url(#shadow)" />
+  <text x="440" y="282" fill="#FFFFFF" font-size="11" font-weight="bold" text-anchor="middle">STRICT ISOLATION</text>
+
+  <!-- Left Side: Candidate Profile A (Private / Sujal) -->
+  <rect x="40" y="100" width="370" height="365" rx="8" fill="#F8FAF9" stroke="#174A45" stroke-width="1.5" filter="url(#shadow)" />
+  <rect x="40" y="100" width="370" height="32" rx="8" fill="#174A45" />
+  <text x="225" y="122" fill="#FFFFFF" font-size="12" font-weight="bold" text-anchor="middle">PROFILE: sujal (Private Verified Candidate)</text>
+
+  <rect x="60" y="145" width="330" height="60" rx="5" fill="#FFFFFF" stroke="#D4DFD9" />
+  <text x="75" y="167" fill="#174A45" font-size="11" font-weight="bold">Candidate Directory: profiles/sujal/</text>
+  <text x="75" y="185" fill="#475B55" font-size="10">• master_profile.json (Verified candidate records)</text>
+  <text x="75" y="198" fill="#475B55" font-size="10">• projects.json (6 verified projects including Bearing Fault)</text>
+
+  <rect x="60" y="215" width="330" height="60" rx="5" fill="#FFFFFF" stroke="#D4DFD9" />
+  <text x="75" y="237" fill="#174A45" font-size="11" font-weight="bold">Candidate Rules: profile_config.yaml</text>
+  <text x="75" y="255" fill="#475B55" font-size="10">• Fixed Project: Bearing Fault locked at Position #2</text>
+  <text x="75" y="268" fill="#475B55" font-size="10">• Prohibited Terms: ["mechanical engineering"]</text>
+
+  <rect x="60" y="285" width="330" height="60" rx="5" fill="#FFFFFF" stroke="#D4DFD9" />
+  <text x="75" y="307" fill="#174A45" font-size="11" font-weight="bold">Source Resumes &amp; Audit Logs</text>
+  <text x="75" y="325" fill="#475B55" font-size="10">• profiles/sujal/source_resumes/ (Original PDFs)</text>
+  <text x="75" y="338" fill="#475B55" font-size="10">• profiles/sujal/audit/migration_audit.json (SHA-256)</text>
+
+  <rect x="60" y="355" width="330" height="50" rx="5" fill="#E9F0ED" stroke="#174A45" />
+  <text x="75" y="375" fill="#174A45" font-size="11" font-weight="bold">Segregated Output Directory</text>
+  <text x="75" y="393" fill="#174A45" font-size="10">output/sujal/{year}/{Company}_{Role}_{Date}/</text>
+
+  <text x="75" y="440" fill="#0F5132" font-size="10.5" font-weight="bold">✓ 0% Leaked into Demo Candidate or GitHub Repository</text>
+
+  <!-- Right Side: Candidate Profile B (Synthetic Demo Candidate) -->
+  <rect x="470" y="100" width="370" height="365" rx="8" fill="#F8FAF9" stroke="#C47A42" stroke-width="1.5" filter="url(#shadow)" />
+  <rect x="470" y="100" width="370" height="32" rx="8" fill="#C47A42" />
+  <text x="655" y="122" fill="#FFFFFF" font-size="12" font-weight="bold" text-anchor="middle">PROFILE: demo_candidate (Synthetic Public Fixture)</text>
+
+  <rect x="490" y="145" width="330" height="60" rx="5" fill="#FFFFFF" stroke="#D4DFD9" />
+  <text x="505" y="167" fill="#A65E28" font-size="11" font-weight="bold">Candidate Directory: profiles/demo_candidate/</text>
+  <text x="505" y="185" fill="#475B55" font-size="10">• Aarav Sharma (Fictional Frontend Developer)</text>
+  <text x="505" y="198" fill="#475B55" font-size="10">• 4 verified frontend projects (CloudCanvas, CryptoPulse)</text>
+
+  <rect x="490" y="215" width="330" height="60" rx="5" fill="#FFFFFF" stroke="#D4DFD9" />
+  <text x="505" y="237" fill="#A65E28" font-size="11" font-weight="bold">Candidate Rules: profile_config.yaml</text>
+  <text x="505" y="255" fill="#475B55" font-size="10">• Pure Dynamic Ranking (has_fixed_project: false)</text>
+  <text x="505" y="268" fill="#475B55" font-size="10">• Prohibited Terms: [] (Degree: Computer Science)</text>
+
+  <rect x="490" y="285" width="330" height="60" rx="5" fill="#FFFFFF" stroke="#D4DFD9" />
+  <text x="505" y="307" fill="#A65E28" font-size="11" font-weight="bold">Synthetic Mark &amp; Safety Flag</text>
+  <text x="505" y="325" fill="#475B55" font-size="10">• is_synthetic: true (Explicit fixture marker)</text>
+  <text x="505" y="338" fill="#475B55" font-size="10">• Safe for public GitHub portfolio publication</text>
+
+  <rect x="490" y="355" width="330" height="50" rx="5" fill="#FDF3EB" stroke="#C47A42" />
+  <text x="505" y="375" fill="#A65E28" font-size="11" font-weight="bold">Segregated Output Directory</text>
+  <text x="505" y="393" fill="#A65E28" font-size="10">output/demo_candidate/{year}/{Company}_{Role}_{Date}/</text>
+
+  <text x="505" y="440" fill="#A65E28" font-size="10.5" font-weight="bold">✓ 0% Private Candidate Data Contained in Fixture</text>
+
+</svg>

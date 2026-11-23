@@ -1,0 +1,32 @@
+profile_id: demo_candidate
+display_name: Aarav Sharma (Demo)
+is_synthetic: true
+headline_rule:
+  mode: permanent
+  permanent_headline: Junior Frontend Developer | React & TypeScript Specialist
+summary_rule:
+  mode: permanent
+  permanent_summary: Frontend developer with 1 year of practical project experience
+    building responsive, accessible web applications using React 18, TypeScript, and
+    Tailwind CSS. Experienced in automated component testing with Vitest and REST
+    API integration.
+prohibited_terms: []
+project_selection:
+  target_count: 4
+  has_fixed_project: false
+  fixed_project: null
+  weights:
+    required_skills_coverage: 0.45
+    responsibilities_alignment: 0.25
+    tech_stack_similarity: 0.2
+    domain_relevance: 0.1
+sections_order:
+- header
+- summary
+- technical_skills
+- projects
+- professional_development
+- education
+- leadership_and_achievements
+- certifications
+theme: editorial_teal_copper

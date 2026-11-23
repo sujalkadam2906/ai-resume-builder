@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-powered-resume-builder"
+version = "1.1.0"
+description = "Multi-Provider AI-powered ATS Resume Tailoring System for Sujal Sunil Kadam"
+authors = [{ name = "Sujal Sunil Kadam" }]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pydantic>=2.7.0",
+    "google-genai>=2.0.0",
+    "groq>=0.11.0",
+    "cohere>=5.0.0",
+    "httpx>=0.27.0",
+    "reportlab>=4.0.0",
+    "python-docx>=1.1.0",
+    "pypdf>=4.0.0",
+    "pdfplumber>=0.11.0",
+    "pyyaml>=6.0.0",
+    "python-dotenv>=1.0.0",
+    "rich>=13.0.0",
+    "pytest>=8.0.0"
+]
+
+[project.scripts]
+resume-builder = "resume_builder.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

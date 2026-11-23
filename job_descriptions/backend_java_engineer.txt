@@ -1,0 +1,20 @@
+Company: Morgan Stanley
+Job Title: Java Full-Stack Developer
+Location: Mumbai / Pune / Bengaluru (Hybrid / Relocation Available)
+
+About the Role:
+We are looking for an ambitious Entry-Level Java Full-Stack Developer to design and develop enterprise financial services software.
+
+Required Skills:
+- Core Java and Java 8 features (Streams, Collections, OOP, Exception Handling)
+- Spring Boot framework for creating RESTful APIs and microservices
+- Relational Database experience with MySQL or PostgreSQL, including SQL queries, schema design, and joins
+- Frontend familiarity with React, JavaScript, or TypeScript for internal portal interfaces
+- Strong foundation in Data Structures, Algorithms, and Object-Oriented Design
+- Unit testing with JUnit and version control with Git / GitHub
+
+Responsibilities:
+- Build and maintain scalable backend REST APIs using Spring Boot and Spring Data JPA
+- Implement data persistence layers with MySQL and write optimized SQL queries
+- Collaborate with agile teams to deliver clean, documented, and tested code
+- Participate in code reviews and automated testing using JUnit 5

@@ -1,0 +1,21 @@
+Job Title: Java Backend Developer
+Company: Infosys Technologies
+Location: Pune, Maharashtra, India
+
+About the Role:
+We are seeking an Entry-Level Java Backend Developer to build scalable enterprise services. You will design, develop, and maintain high-performance RESTful APIs using Spring Boot, Spring Data JPA, and Hibernate.
+
+Required Technical Skills:
+- Core Java (Java 8/11/17), Collections, Streams API, Multithreading, Exception Handling.
+- Spring Boot, Spring MVC, Spring Data JPA, Hibernate ORM.
+- Relational Database Management Systems: MySQL, PostgreSQL, Complex SQL Queries, Joins, Indexing, ACID compliance.
+- RESTful Web Services, JSON, API Versioning, Postman.
+- Version Control: Git, GitHub.
+- Unit Testing: JUnit 5, Mockito.
+- Understanding of Microservices architecture, Docker basics, and Cloud fundamentals (AWS).
+
+Key Responsibilities:
+- Design and implement secure, clean, and robust REST APIs using Java and Spring Boot.
+- Write efficient SQL queries, manage database schema migrations, and optimize queries.
+- Write comprehensive unit and integration tests using JUnit 5.
+- Participate in code reviews, sprint ceremonies, and agile SDLC workflows.

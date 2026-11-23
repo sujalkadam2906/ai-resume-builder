@@ -1,0 +1,81 @@
+# ==============================================================================
+# Environment Variables & Secrets
+# ==============================================================================
+.env
+.env.*
+!.env.example
+
+# ==============================================================================
+# Virtual Environments
+# ==============================================================================
+.venv/
+venv/
+ENV/
+env/
+
+# ==============================================================================
+# Python Bytecode & Test Caches
+# ==============================================================================
+__pycache__/
+*.pyc
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ==============================================================================
+# Runtime Outputs, Logs & Temp Directories
+# ==============================================================================
+logs/
+output/
+scratch/
+Current Resumes/
+incoming/
+generated/
+temp/
+tmp/
+backups/
+
+# ==============================================================================
+# Build Artifacts
+# ==============================================================================
+dist/
+build/
+*.egg-info/
+
+# ==============================================================================
+# Private Candidate Data & Local Profiles
+# ==============================================================================
+data/backups/
+data/master_profile.json
+data/projects.json
+data/github_repo_audit.json
+
+# Exclude all private candidate profiles; ONLY track synthetic demo_candidate
+profiles/*/
+!profiles/demo_candidate/
+
+# Exclude generated documents and temporary previews outside docs/
+debug_test_Preview.png
+test_bynry_Preview.png
+test_debug_ats_Preview.png
+*.pdf
+*.docx
+!docs/pdf/*.pdf
+!docs/assets/*.png
+!docs/assets/*.svg
+!docs/assets/*.jpg
+
+# ==============================================================================
+# IDE & Operating System Files
+# ==============================================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+Thumbs.db
+.DS_Store

@@ -1,0 +1,21 @@
+Job Title: Junior Frontend Developer
+Company: Razorpay
+Location: Bengaluru, Karnataka, India
+
+About the Role:
+Razorpay is seeking a Junior Frontend Developer to build blazing-fast, accessible, and delightful payment experiences. You will design, build, and maintain interactive web UI components using React 18, TypeScript, and modern styling solutions.
+
+Required Technical Skills:
+- React 18, TypeScript, JavaScript (ES6+), React Hooks, State Management.
+- Modern CSS: CSS Modules, Tailwind CSS, Responsive Design, CSS Grid & Flexbox.
+- Frontend Tooling: Vite, npm/pnpm, Babel.
+- Testing: Vitest, React Testing Library, Jest.
+- Web Standards: HTML5 semantic markup, Web Accessibility (WCAG 2.1), Cross-Browser Compatibility.
+- REST API Integration, JSON handling, Client-side storage (IndexedDB, localStorage).
+- Git, GitHub, CI/CD with Vercel or Netlify.
+
+Key Responsibilities:
+- Build reusable and maintainable React UI components following Figma design specifications.
+- Integrate frontend interfaces with RESTful backend APIs.
+- Write unit and component tests using Vitest and React Testing Library.
+- Ensure 100% responsive layout across mobile and desktop devices.

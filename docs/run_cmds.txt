@@ -1,0 +1,15 @@
+  The PowerShell wrapper resume.ps1 and Python CLI support multi-profile operations:
+
+    # List all registered profiles
+    .\resume.ps1 -ListProfiles
+
+    # Validate a candidate profile
+    .\resume.ps1 -Profile sujal -ValidateProfile
+    .\resume.ps1 -Profile demo_candidate -ValidateProfile
+
+    # Inspect profile configuration and statistics
+    .\resume.ps1 -Profile demo_candidate -ProfileInfo
+
+    # Generate a tailored resume for a specific profile
+    .\resume.ps1 -Profile sujal -JDPath ".\job_descriptions\sujal\java_backend.txt" -Offline
+    .\resume.ps1 -Profile demo_candidate -JDPath ".\job_descriptions\demo_candidate\frontend_developer.txt" -Offline

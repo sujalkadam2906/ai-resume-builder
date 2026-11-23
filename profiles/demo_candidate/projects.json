@@ -1,0 +1,150 @@
+[
+  {
+    "id": "cloud_canvas_ui",
+    "title": "CloudCanvas UI Component Library",
+    "subtitle": "React 18 \u00b7 TypeScript \u00b7 Tailwind CSS \u00b7 Storybook \u00b7 Vitest",
+    "is_fixed_project": false,
+    "fixed_position": null,
+    "categories": [
+      "Frontend",
+      "React",
+      "TypeScript",
+      "Design Systems"
+    ],
+    "skills": [
+      "React 18",
+      "TypeScript",
+      "Tailwind CSS",
+      "Storybook",
+      "Vitest",
+      "React Testing Library"
+    ],
+    "links": [
+      {
+        "label": "GitHub",
+        "url": "https://github.com/aaravsharma-demo/cloudcanvas-ui"
+      }
+    ],
+    "bullets": [
+      "Engineered an accessible React component library comprising 24 reusable UI elements with zero external CSS dependencies.",
+      "Achieved 95% unit test coverage using Vitest and React Testing Library; integrated automated Storybook visual regression checks."
+    ],
+    "metrics": [
+      "24 reusable UI elements",
+      "95% unit test coverage"
+    ],
+    "evidence_source": "demo_synthetic",
+    "verification_status": "verified",
+    "notice": "FICTIONAL DEMONSTRATION DATA \u2014 NOT A REAL CANDIDATE."
+  },
+  {
+    "id": "crypto_pulse_dashboard",
+    "title": "CryptoPulse Real-Time Financial Dashboard",
+    "subtitle": "React 18 \u00b7 TypeScript \u00b7 WebSocket \u00b7 Chart.js \u00b7 Tailwind CSS",
+    "is_fixed_project": false,
+    "fixed_position": null,
+    "categories": [
+      "Frontend",
+      "React",
+      "WebSockets",
+      "Data Visualization"
+    ],
+    "skills": [
+      "React 18",
+      "TypeScript",
+      "WebSocket",
+      "Chart.js",
+      "Tailwind CSS",
+      "IndexedDB"
+    ],
+    "links": [
+      {
+        "label": "GitHub",
+        "url": "https://github.com/aaravsharma-demo/cryptopulse-dashboard"
+      }
+    ],
+    "bullets": [
+      "Architected a responsive dashboard consuming WebSocket feeds to visualize real-time cryptocurrency price movements with sub-100ms render latency.",
+      "Implemented client-side caching with IndexedDB to support offline viewing of historical market trends across 50+ token pairs."
+    ],
+    "metrics": [
+      "sub-100ms render latency",
+      "50+ token pairs"
+    ],
+    "evidence_source": "demo_synthetic",
+    "verification_status": "verified",
+    "notice": "FICTIONAL DEMONSTRATION DATA \u2014 NOT A REAL CANDIDATE."
+  },
+  {
+    "id": "form_forge_engine",
+    "title": "FormForge Accessible Forms Engine",
+    "subtitle": "React \u00b7 TypeScript \u00b7 React Hook Form \u00b7 Zod \u00b7 WAI-ARIA",
+    "is_fixed_project": false,
+    "fixed_position": null,
+    "categories": [
+      "Frontend",
+      "Forms",
+      "Accessibility",
+      "TypeScript"
+    ],
+    "skills": [
+      "React",
+      "TypeScript",
+      "React Hook Form",
+      "Zod",
+      "WAI-ARIA",
+      "Accessibility"
+    ],
+    "links": [
+      {
+        "label": "GitHub",
+        "url": "https://github.com/aaravsharma-demo/formforge-engine"
+      }
+    ],
+    "bullets": [
+      "Built a schema-driven dynamic form engine with runtime Zod validation and full WAI-ARIA screen-reader compliance.",
+      "Reduced form completion drop-off by 35% through real-time field validation, accessible error announcements, and auto-save capabilities."
+    ],
+    "metrics": [
+      "35% reduction in drop-off"
+    ],
+    "evidence_source": "demo_synthetic",
+    "verification_status": "verified",
+    "notice": "FICTIONAL DEMONSTRATION DATA \u2014 NOT A REAL CANDIDATE."
+  },
+  {
+    "id": "portfolio_builder_spa",
+    "title": "PortfolioForge Web Application",
+    "subtitle": "Next.js \u00b7 TypeScript \u00b7 Tailwind CSS \u00b7 Vercel",
+    "is_fixed_project": false,
+    "fixed_position": null,
+    "categories": [
+      "Frontend",
+      "Next.js",
+      "Static Generation"
+    ],
+    "skills": [
+      "Next.js",
+      "TypeScript",
+      "Tailwind CSS",
+      "Markdown",
+      "Vercel"
+    ],
+    "links": [
+      {
+        "label": "GitHub",
+        "url": "https://github.com/aaravsharma-demo/portfolio-forge"
+      }
+    ],
+    "bullets": [
+      "Developed an interactive portfolio generator enabling software engineers to export responsive single-page portfolio websites.",
+      "Integrated Markdown parsing and automated GitHub API repository synchronization with instantaneous client-side preview rendering."
+    ],
+    "metrics": [
+      "Instantaneous client preview"
+    ],
+    "evidence_source": "demo_synthetic",
+    "verification_status": "verified",
+    "notice": "FICTIONAL DEMONSTRATION DATA \u2014 NOT A REAL CANDIDATE."
+  }
+]

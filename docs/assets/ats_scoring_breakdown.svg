@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 440" width="100%" height="100%" style="background:#FFFFFF; font-family:'Segoe UI', Helvetica, Arial, sans-serif;">
+  <defs>
+    <linearGradient id="tealGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#174A45" />
+      <stop offset="100%" stop-color="#0F332F" />
+    </linearGradient>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="#000000" flood-opacity="0.08" />
+    </filter>
+  </defs>
+
+  <rect x="30" y="20" width="780" height="50" rx="8" fill="url(#tealGrad)" filter="url(#shadow)" />
+  <text x="420" y="44" fill="#FFFFFF" font-size="16" font-weight="bold" text-anchor="middle">THREE-PILLAR ATS READINESS SCORING METHODOLOGY</text>
+  <text x="420" y="60" fill="#E9F0ED" font-size="11" text-anchor="middle">Deterministic Heuristic Assessment Based on Actual Extracted PDF Text (Total: 100 Points)</text>
+
+  <!-- Pillar 1: Format Compatibility (30 pts) -->
+  <rect x="40" y="95" width="235" height="310" rx="8" fill="#F8FAF9" stroke="#174A45" stroke-width="1.5" filter="url(#shadow)" />
+  <rect x="40" y="95" width="235" height="34" rx="8" fill="#174A45" />
+  <text x="157" y="117" fill="#FFFFFF" font-size="12" font-weight="bold" text-anchor="middle">FORMAT COMPATIBILITY</text>
+  <text x="157" y="148" fill="#174A45" font-size="22" font-weight="bold" text-anchor="middle">30 Points</text>
+  <text x="157" y="165" fill="#475B55" font-size="10.5" text-anchor="middle">Weight: 30%</text>
+
+  <line x1="55" y1="180" x2="260" y2="180" stroke="#D4DFD9" stroke-width="1" />
+  <text x="55" y="202" fill="#263238" font-size="10.5" font-weight="bold">• Single Column Layout: +5</text>
+  <text x="55" y="222" fill="#263238" font-size="10.5" font-weight="bold">• Exactly 1 Page Fit: +8</text>
+  <text x="55" y="242" fill="#263238" font-size="10.5" font-weight="bold">• Contact Info Complete: +5</text>
+  <text x="55" y="262" fill="#263238" font-size="10.5" font-weight="bold">• Standard Headings: +4</text>
+  <text x="55" y="282" fill="#263238" font-size="10.5" font-weight="bold">• Selectable PDF Text: +4</text>
+  <text x="55" y="302" fill="#263238" font-size="10.5" font-weight="bold">• Zero Prohibited Terms: +4</text>
+
+  <rect x="55" y="335" width="205" height="50" rx="4" fill="#E9F0ED" />
+  <text x="157" y="355" fill="#174A45" font-size="9.5" font-weight="bold" text-anchor="middle">Validation Engine</text>
+  <text x="157" y="372" fill="#475B55" font-size="9" text-anchor="middle">pypdf &amp; pdfplumber extraction</text>
+
+  <!-- Pillar 2: JD Relevance (50 pts) -->
+  <rect x="300" y="95" width="240" height="310" rx="8" fill="#F8FAF9" stroke="#C47A42" stroke-width="1.5" filter="url(#shadow)" />
+  <rect x="300" y="95" width="240" height="34" rx="8" fill="#C47A42" />
+  <text x="420" y="117" fill="#FFFFFF" font-size="12" font-weight="bold" text-anchor="middle">JD RELEVANCE</text>
+  <text x="420" y="148" fill="#C47A42" font-size="22" font-weight="bold" text-anchor="middle">50 Points</text>
+  <text x="420" y="165" fill="#475B55" font-size="10.5" text-anchor="middle">Weight: 50%</text>
+
+  <line x1="315" y1="180" x2="525" y2="180" stroke="#D4DFD9" stroke-width="1" />
+  <text x="315" y="202" fill="#263238" font-size="10.5" font-weight="bold">• Must-Have Skills Match: 35 pts</text>
+  <text x="330" y="218" fill="#475B55" font-size="9.5">Linear scaling by verified coverage</text>
+  <text x="315" y="238" fill="#263238" font-size="10.5" font-weight="bold">• Preferred Skills Match: 10 pts</text>
+  <text x="330" y="254" fill="#475B55" font-size="9.5">Bonus coverage for secondary skills</text>
+  <text x="315" y="274" fill="#263238" font-size="10.5" font-weight="bold">• Keyword Density Ratio: 5 pts</text>
+  <text x="330" y="290" fill="#475B55" font-size="9.5">Natural contextual frequency</text>
+  <text x="315" y="310" fill="#C47A42" font-size="10" font-weight="bold">• Unsupported Claims: Truthfully Left</text>
+
+  <rect x="315" y="335" width="210" height="50" rx="4" fill="#FDF3EB" />
+  <text x="420" y="355" fill="#C47A42" font-size="9.5" font-weight="bold" text-anchor="middle">Synonym Matching</text>
+  <text x="420" y="372" fill="#475B55" font-size="9" text-anchor="middle">Canonical technical taxonomy</text>
+
+  <!-- Pillar 3: Content Quality (20 pts) -->
+  <rect x="565" y="95" width="235" height="310" rx="8" fill="#F8FAF9" stroke="#174A45" stroke-width="1.5" filter="url(#shadow)" />
+  <rect x="565" y="95" width="235" height="34" rx="8" fill="#174A45" />
+  <text x="682" y="117" fill="#FFFFFF" font-size="12" font-weight="bold" text-anchor="middle">CONTENT QUALITY</text>
+  <text x="682" y="148" fill="#174A45" font-size="22" font-weight="bold" text-anchor="middle">20 Points</text>
+  <text x="682" y="165" fill="#475B55" font-size="10.5" text-anchor="middle">Weight: 20%</text>
+
+  <line x1="580" y1="180" x2="785" y2="180" stroke="#D4DFD9" stroke-width="1" />
+  <text x="580" y="202" fill="#263238" font-size="10.5" font-weight="bold">• Strong Action Verbs: +8</text>
+  <text x="595" y="218" fill="#475B55" font-size="9.5">Engineered, Architected, Built, etc.</text>
+  <text x="580" y="238" fill="#263238" font-size="10.5" font-weight="bold">• Quantifiable Metrics: +6</text>
+  <text x="595" y="254" fill="#475B55" font-size="9.5">Percentages, latencies, user volumes</text>
+  <text x="580" y="274" fill="#263238" font-size="10.5" font-weight="bold">• Bullet Conciseness: +3</text>
+  <text x="595" y="290" fill="#475B55" font-size="9.5">1-2 lines max per bullet point</text>
+  <text x="580" y="310" fill="#263238" font-size="10.5" font-weight="bold">• Evidence Verification: +3</text>
+
+  <rect x="580" y="335" width="205" height="50" rx="4" fill="#E9F0ED" />
+  <text x="682" y="355" fill="#174A45" font-size="9.5" font-weight="bold" text-anchor="middle">Anti-Hallucination</text>
+  <text x="682" y="372" fill="#475B55" font-size="9" text-anchor="middle">Strict candidate database bounds</text>
+
+</svg>

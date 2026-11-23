@@ -1,0 +1,121 @@
+app:
+  name: "AI-Powered ATS Resume Tailoring System"
+  version: "1.1.0"
+  candidate_name: "Candidate"
+
+# Provider Priority Cascade
+# Order determines fallback sequence: Gemini -> Groq -> Cohere -> OpenRouter -> Cloudflare -> Offline
+providers:
+  priority:
+    - "gemini"
+    - "groq"
+    - "cohere"
+    - "openrouter"
+    - "cloudflare"
+    - "offline"
+
+  gemini:
+    enabled: true
+    candidate_models:
+      - "gemini-4-carbon"
+      - "gemini-4-hydrogen"
+      - "gemini-3.8-flash"
+      - "gemini-3.6-flash"
+      - "gemini-3.5-flash-lite"
+    temperature: 0.2
+    max_retries: 3
+    timeout_seconds: 30
+    backoff_factor: 2.0
+
+  groq:
+    enabled: true
+    candidate_models:
+      - "llama-3.3-70b-versatile"
+      - "llama-3.1-8b-instant"
+      - "mixtral-8x7b-32768"
+      - "gemma2-9b-it"
+    temperature: 0.2
+    max_retries: 3
+    timeout_seconds: 25
+    backoff_factor: 2.0
+
+  cohere:
+    enabled: true
+    candidate_models:
+      - "command-r-plus-08-2024"
+      - "command-r-plus"
+      - "command-r"
+      - "command-light"
+    temperature: 0.2
+    max_retries: 3
+    timeout_seconds: 30
+    backoff_factor: 2.0
+
+  openrouter:
+    enabled: true
+    dynamic_routing: false # If true, can use openrouter/free
+    default_free_model: "meta-llama/llama-3.3-70b-instruct:free"
+    candidate_models:
+      - "meta-llama/llama-3.3-70b-instruct:free"
+      - "mistralai/mistral-7b-instruct:free"
+      - "openrouter/free"
+    temperature: 0.2
+    max_retries: 3
+    timeout_seconds: 30
+    backoff_factor: 2.0
+
+  cloudflare:
+    enabled: true
+    candidate_models:
+      - "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+      - "@cf/meta/llama-3.1-8b-instruct"
+      - "@cf/mistral/mistral-7b-instruct-v0.2"
+    temperature: 0.2
+    max_retries: 3
+    timeout_seconds: 30
+    backoff_factor: 2.0
+
+  offline:
+    enabled: true
+
+project_selection:
+  target_project_count: 4
+  fixed_project:
+    id: "bearing_fault_diagnosis"
+    title: "Bearing Fault Diagnosis Using Machine Learning"
+    position: 2 # 1-based index (always position 2)
+  weights:
+    required_skills_coverage: 0.45
+    responsibilities_alignment: 0.25
+    tech_stack_similarity: 0.20
+    domain_relevance: 0.10
+
+layout:
+  target_pages: 1
+  page_size: "A4" # 595.27 x 841.89 points
+  margins:
+    top: 32.0 # ~0.45 in
+    bottom: 32.0
+    left: 36.0 # 0.5 in
+    right: 36.0
+  colors:
+    primary_accent: "#1B365D" # Dark navy accent for headings
+    text_dark: "#1A1A1A"
+    subtext: "#4A4A4A"
+    rule_color: "#1B365D"
+  fonts:
+    name_size: 19.0
+    headline_size: 9.5
+    contact_size: 8.5
+    section_heading_size: 10.5
+    project_title_size: 9.5
+    body_size: 9.2
+    bullet_size: 9.0
+    min_body_size: 8.8
+
+ats_scoring:
+  weights:
+    format_compatibility: 30
+    jd_relevance: 50
+    content_quality: 20
+  target_score: 85

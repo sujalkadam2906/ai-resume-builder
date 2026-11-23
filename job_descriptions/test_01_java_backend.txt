@@ -1,0 +1,23 @@
+JOB TITLE: Java Backend Developer / Associate Software Engineer
+EXPERIENCE: Fresher – 2 Years
+LOCATION: Pune, India
+
+Responsibilities:
+- Develop backend applications using Java and Spring Boot.
+- Build RESTful APIs using Spring MVC and Spring Data JPA.
+- Implement CRUD operations, business logic and exception handling.
+- Work with MySQL and PostgreSQL databases.
+- Apply OOP, Collections, DSA and Java fundamentals.
+- Write unit tests and debug application issues.
+- Use Git, GitHub and Maven for development.
+- Document technical implementations and API endpoints.
+- Collaborate with frontend developers and QA teams.
+
+Required:
+Core Java, Java 8, OOP, Spring Boot, Spring MVC,
+Hibernate, Spring Data JPA, REST APIs, SQL, MySQL,
+Git, Maven, debugging and problem-solving.
+
+Preferred:
+PostgreSQL, JUnit, Docker, AWS, Microservices,
+CI/CD and Agile development.
