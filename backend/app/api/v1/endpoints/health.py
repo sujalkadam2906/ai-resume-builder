@@ -76,8 +76,8 @@ def readiness_probe() -> JSONResponse:
 
     # 4. Security Gate status
     checks["security_gate"] = {
-        "cloudflare_access_required": settings.require_cf_access,
-        "status": "active" if settings.require_cf_access else "disabled (local dev mode)",
+        "auth_required": settings.require_auth,
+        "status": "active" if settings.require_auth else "disabled (local dev mode)",
     }
 
     status_code = status.HTTP_200_OK if is_ready else status.HTTP_503_SERVICE_UNAVAILABLE

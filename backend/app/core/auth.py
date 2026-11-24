@@ -1,14 +1,14 @@
-"""Zero-Trust Cloudflare Access JWT Authentication & Identity Enforcement.
+"""Supabase JWT Authentication & Identity Enforcement.
 
 Provides:
-- Cryptographic verification of 'Cf-Access-Jwt-Assertion' headers using Cloudflare JWKS.
-- Strict claim validation: 'aud' (Audience tag), 'iss' (Team domain), 'exp' (Expiration), 'sub' (User ID).
-- Absolute rejection of unverified client headers (e.g. naked 'Cf-Access-Authenticated-User-Email').
+- Cryptographic verification of Bearer JWT tokens using Supabase JWKS.
+- Flexible algorithm support: Asymmetric (RS256, ES256, EdDSA) via JWKS.
+- Strict claim validation: 'aud' (Audience), 'iss' (Supabase project auth issuer), 'exp' (Expiration), 'sub' (User ID).
+- Absolute rejection of naked/unverified client identity headers.
 - Production fail-closed enforcement (no bypasses permitted when APP_ENV=production).
-- Authorization gating against configured allowed user emails.
+- Authorization gating against configured allowed user emails (ALLOWED_EMAILS).
 """
 
-from dataclasses import field
 import logging
 import time
 from typing import Any, Dict, List, Optional
@@ -16,7 +16,7 @@ from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import httpx
 import jwt
-from jwt.algorithms import RSAAlgorithm
+from jwt.algorithms import RSAAlgorithm, ECAlgorithm
 from pydantic import BaseModel, Field
 
 from backend.app.config import settings
@@ -36,34 +36,52 @@ class AuthenticatedUser(BaseModel):
     claims: Dict[str, Any] = Field(default_factory=dict)
 
 
-class CloudflareAccessValidator:
-    """Validator for Cloudflare Access JWT assertions."""
+# Supported asymmetric signing algorithms
+ALLOWED_ALGORITHMS = ["RS256", "RS384", "RS512", "ES256", "ES384", "ES512", "EdDSA"]
+
+
+class SupabaseAuthValidator:
+    """Validator for Supabase JWT assertions using JWKS."""
 
     def __init__(
         self,
-        team_name: Optional[str] = None,
+        supabase_url: Optional[str] = None,
         expected_aud: Optional[str] = None,
         cache_ttl_seconds: int = 3600,
     ):
-        self.team_name = team_name or settings.cloudflare_access_team_name
-        self.expected_aud = expected_aud or settings.cloudflare_access_aud
+        self.supabase_url = (supabase_url or settings.supabase_url).rstrip("/")
+        self.expected_aud = expected_aud or settings.supabase_jwt_aud
         self.cache_ttl_seconds = cache_ttl_seconds
         self._cached_keys: Dict[str, Any] = {}
         self._last_fetch: float = 0.0
 
     @property
     def expected_issuer(self) -> str:
-        """Expected JWT issuer string for Cloudflare Access."""
-        if not self.team_name:
+        """Expected JWT issuer string for Supabase Auth."""
+        if not self.supabase_url:
             return ""
-        return f"https://{self.team_name}.cloudflareaccess.com"
+        return f"{self.supabase_url}/auth/v1"
 
     @property
     def certs_url(self) -> str:
-        """Cloudflare Access public keys/JWKS endpoint."""
-        if not self.team_name:
+        """Supabase public keys/JWKS endpoint."""
+        if not self.supabase_url:
             return ""
-        return f"https://{self.team_name}.cloudflareaccess.com/cdn-cgi/access/certs"
+        return f"{self.supabase_url}/auth/v1/.well-known/jwks.json"
+
+    def _parse_jwk(self, key_dict: Dict[str, Any]) -> Any:
+        """Parse JWK dict into a usable public key object based on kty."""
+        kty = key_dict.get("kty", "").upper()
+        if kty == "RSA":
+            return RSAAlgorithm.from_jwk(key_dict)
+        elif kty == "EC":
+            return ECAlgorithm.from_jwk(key_dict)
+        elif kty == "OKP":
+            # For Ed25519 / EdDSA if PyJWT / cryptography supports it
+            from jwt.algorithms import OKPAlgorithm
+            return OKPAlgorithm.from_jwk(key_dict)
+        else:
+            raise ValueError(f"Unsupported JWK key type: '{kty}'")
 
     def set_cached_keys(self, jwks_keys: List[Dict[str, Any]]) -> None:
         """Manually populate cached keys (used for test isolation)."""
@@ -71,24 +89,27 @@ class CloudflareAccessValidator:
         for key_dict in jwks_keys:
             kid = key_dict.get("kid")
             if kid:
-                self._cached_keys[kid] = RSAAlgorithm.from_jwk(key_dict)
+                try:
+                    self._cached_keys[kid] = self._parse_jwk(key_dict)
+                except Exception as exc:
+                    logger.warning(f"Failed to parse test JWK with kid '{kid}': {exc}")
         self._last_fetch = time.time()
 
     def fetch_public_keys(self, force_refresh: bool = False) -> Dict[str, Any]:
-        """Fetch and cache Cloudflare public RSA keys from the JWKS certs endpoint."""
+        """Fetch and cache Supabase public keys from the JWKS endpoint."""
         now = time.time()
         if not force_refresh and self._cached_keys and (now - self._last_fetch < self.cache_ttl_seconds):
             return self._cached_keys
 
         if not self.certs_url:
-            logger.warning("Cloudflare Access team name is not configured; cannot fetch certs.")
+            logger.warning("Supabase URL is not configured; cannot fetch JWKS certs.")
             return {}
 
         try:
             with httpx.Client(timeout=10.0) as client:
                 resp = client.get(self.certs_url)
                 if resp.status_code != 200:
-                    logger.error(f"Failed to fetch Cloudflare certs: HTTP {resp.status_code}")
+                    logger.error(f"Failed to fetch Supabase JWKS certs: HTTP {resp.status_code}")
                     return self._cached_keys
 
                 jwks = resp.json()
@@ -97,21 +118,25 @@ class CloudflareAccessValidator:
                 for key_dict in keys:
                     kid = key_dict.get("kid")
                     if kid:
-                        parsed_keys[kid] = RSAAlgorithm.from_jwk(key_dict)
+                        try:
+                            parsed_keys[kid] = self._parse_jwk(key_dict)
+                        except Exception as exc:
+                            logger.warning(f"Skipping key {kid}: {exc}")
 
                 self._cached_keys = parsed_keys
                 self._last_fetch = now
-                logger.info(f"Refreshed {len(parsed_keys)} Cloudflare Access public keys.")
+                logger.info(f"Refreshed {len(parsed_keys)} Supabase public keys from JWKS.")
                 return self._cached_keys
         except Exception as exc:
-            logger.error(f"Error fetching Cloudflare certs from {self.certs_url}: {exc}")
+            logger.error(f"Error fetching Supabase JWKS from {self.certs_url}: {exc}")
             return self._cached_keys
 
     def verify_jwt(self, token: str) -> AuthenticatedUser:
         """
-        Cryptographically verify the Cloudflare Access JWT.
+        Cryptographically verify the Supabase JWT.
         Validates:
-        - RSA256 signature against matching 'kid' public key
+        - Signature against matching 'kid' public key from Supabase JWKS
+        - Allowed asymmetric algorithm (RS256, ES256, etc.)
         - Audience 'aud'
         - Issuer 'iss'
         - Expiration 'exp'
@@ -120,7 +145,7 @@ class CloudflareAccessValidator:
         if not token or not isinstance(token, str):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Missing or malformed Cloudflare Access JWT assertion.",
+                detail="Missing or malformed Supabase Bearer token.",
                 headers={"WWW-Authenticate": 'Bearer error="invalid_token"'},
             )
 
@@ -135,10 +160,10 @@ class CloudflareAccessValidator:
             )
 
         alg = unverified_header.get("alg")
-        if alg != "RS256":
+        if not alg or alg not in ALLOWED_ALGORITHMS:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=f"Unsupported token algorithm '{alg}'. Only RS256 is accepted.",
+                detail=f"Unsupported token algorithm '{alg}'. Accepted algorithms: {', '.join(ALLOWED_ALGORITHMS)}.",
                 headers={"WWW-Authenticate": 'Bearer error="invalid_token"'},
             )
 
@@ -150,11 +175,11 @@ class CloudflareAccessValidator:
                 headers={"WWW-Authenticate": 'Bearer error="invalid_token"'},
             )
 
-        # 2. Resolve matching public RSA key
+        # 2. Resolve matching public key
         keys = self.fetch_public_keys(force_refresh=False)
         public_key = keys.get(kid)
         if not public_key:
-            # Refresh once in case key was recently rotated by Cloudflare
+            # Refresh once in case key was recently rotated by Supabase
             keys = self.fetch_public_keys(force_refresh=True)
             public_key = keys.get(kid)
 
@@ -168,7 +193,7 @@ class CloudflareAccessValidator:
         # 3. Cryptographically verify signature and standard claims
         try:
             decode_kwargs: Dict[str, Any] = {
-                "algorithms": ["RS256"],
+                "algorithms": ALLOWED_ALGORITHMS,
                 "options": {
                     "require": ["exp", "iss", "aud", "sub"],
                     "verify_exp": True,
@@ -185,30 +210,33 @@ class CloudflareAccessValidator:
         except jwt.ExpiredSignatureError:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Cloudflare Access token has expired.",
+                detail="Supabase token has expired.",
                 headers={"WWW-Authenticate": 'Bearer error="token_expired"'},
             )
         except jwt.InvalidAudienceError:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Cloudflare Access token audience ('aud') mismatch.",
+                detail="Supabase token audience ('aud') mismatch.",
                 headers={"WWW-Authenticate": 'Bearer error="invalid_token"'},
             )
         except jwt.InvalidIssuerError:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Cloudflare Access token issuer ('iss') mismatch.",
+                detail="Supabase token issuer ('iss') mismatch.",
                 headers={"WWW-Authenticate": 'Bearer error="invalid_token"'},
             )
         except Exception as exc:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=f"Cloudflare Access token verification failed: {exc}",
+                detail=f"Supabase token verification failed: {exc}",
                 headers={"WWW-Authenticate": 'Bearer error="invalid_token"'},
             )
 
         # 4. Extract verified identity claims
-        email = payload.get("email") or payload.get("identity", {}).get("email")
+        email = payload.get("email")
+        if not email and isinstance(payload.get("user_metadata"), dict):
+            email = payload["user_metadata"].get("email")
+
         if not email:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -226,17 +254,23 @@ class CloudflareAccessValidator:
                 detail=f"User '{email}' is authenticated but not authorized to access this platform.",
             )
 
+        user_metadata = payload.get("user_metadata") or {}
+        name = user_metadata.get("full_name") or user_metadata.get("name") or payload.get("name") or email.split("@")[0]
+
         return AuthenticatedUser(
             email=email,
             user_id=user_id,
-            name=payload.get("name") or email.split("@")[0],
+            name=name,
             is_authenticated=True,
             claims=payload,
         )
 
 
 # Global singleton validator
-access_validator = CloudflareAccessValidator()
+auth_validator = SupabaseAuthValidator()
+# Backward-compatibility alias
+CloudflareAccessValidator = SupabaseAuthValidator
+access_validator = auth_validator
 
 
 def get_current_user(
@@ -245,36 +279,34 @@ def get_current_user(
 ) -> AuthenticatedUser:
     """
     FastAPI dependency to authenticate requests.
-    Inspects:
-    1. 'Cf-Access-Jwt-Assertion' header (primary Cloudflare Access token header)
-    2. 'Authorization: Bearer <token>' header (fallback/API bearer token)
+    Strictly inspects 'Authorization: Bearer <token>' header.
+    Never trusts client-supplied identity headers.
     
     Production Fail-Closed Rules:
-    - If APP_ENV=production, valid Cloudflare Access token is mandatory.
+    - If APP_ENV=production, valid Supabase JWT Bearer token is mandatory.
     - Development bypasses are strictly disallowed in production.
     """
-    # Extract token
-    token = request.headers.get("Cf-Access-Jwt-Assertion")
-    if not token and bearer_credentials and bearer_credentials.credentials:
+    token = None
+    if bearer_credentials and bearer_credentials.credentials:
         token = bearer_credentials.credentials
 
     # 1. Handle missing token
     if not token:
         if settings.is_production:
             logger.warning(
-                f"Unauthorized request to {request.method} {request.url.path} in production: Missing Cloudflare Access JWT."
+                f"Unauthorized request to {request.method} {request.url.path} in production: Missing Bearer token."
             )
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Authentication required: Missing Cloudflare Access JWT assertion.",
+                detail="Authentication required: Missing Bearer token.",
                 headers={"WWW-Authenticate": 'Bearer error="missing_token"'},
             )
 
         # Development environment handling
-        if settings.require_cf_access:
+        if settings.require_auth:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Authentication required: REQUIRE_CF_ACCESS is enabled.",
+                detail="Authentication required: REQUIRE_AUTH is enabled.",
                 headers={"WWW-Authenticate": 'Bearer error="missing_token"'},
             )
 
@@ -295,4 +327,4 @@ def get_current_user(
         )
 
     # 2. Token is present: verify cryptographically
-    return access_validator.verify_jwt(token)
+    return auth_validator.verify_jwt(token)

@@ -13,7 +13,9 @@ import {
   UserCheck,
   Shield,
   Plus,
+  LogOut,
 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useActiveProfile } from "@/context/ActiveProfileContext";
 import { profilesApi } from "@/services/api";
@@ -30,6 +32,7 @@ export const Header: React.FC<HeaderProps> = ({
   const location = useLocation();
   const { theme, effectiveTheme, setTheme } = useTheme();
   const { activeProfileSlug, setActiveProfileSlug } = useActiveProfile();
+  const { user, signOut } = useAuth();
 
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -221,6 +224,25 @@ export const Header: React.FC<HeaderProps> = ({
                   );
                 })}
               </div>
+
+              {/* User Account / Logout section */}
+              {user && (
+                <div className="mt-1 pt-1 border-t border-surface-border px-1">
+                  <div className="px-2.5 py-1.5 text-[11px] text-text-muted truncate">
+                    Signed in as <span className="font-medium text-text-secondary">{user.email}</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setIsProfileDropdownOpen(false);
+                      signOut();
+                    }}
+                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-xs text-red-500 hover:bg-red-500/10 transition-colors"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

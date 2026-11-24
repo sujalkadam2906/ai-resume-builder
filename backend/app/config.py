@@ -42,19 +42,15 @@ class WebSettings:
         default_db_url = f"postgresql+psycopg://{pg_user}:{pg_password}@{pg_host}:{pg_port}/{pg_db}"
         self.database_url: str = os.getenv("DATABASE_URL", default_db_url)
 
-        # Storage
+        # Supabase Authentication & Storage
         self.storage_backend: str = os.getenv("STORAGE_BACKEND", "local")  # local | supabase
         self.storage_path: Path = STORAGE_DIR
-        self.supabase_url: str = os.getenv("SUPABASE_URL", "")
-        self.supabase_service_key: str = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-
-        # Cloudflare Access Security Gate
-        self.cloudflare_access_team_name: str = os.getenv("CF_ACCESS_TEAM_NAME", "")
-        self.cloudflare_access_aud: str = os.getenv("CF_ACCESS_AUD", "")
-        self.require_cf_access: bool = os.getenv("REQUIRE_CF_ACCESS", "false").lower() in ("true", "1", "yes")
+        self.supabase_url: str = os.getenv("SUPABASE_URL", "").rstrip("/")
+        self.supabase_jwt_aud: str = os.getenv("SUPABASE_JWT_AUD", "authenticated")
+        self.require_auth: bool = os.getenv("REQUIRE_AUTH", "false").lower() in ("true", "1", "yes")
         self.allow_dev_auth_bypass: bool = os.getenv("ALLOW_DEV_AUTH_BYPASS", "true").lower() in ("true", "1", "yes")
 
-        # Access authorization: comma-separated list of allowed user emails (empty = allow all authenticated CF Access users)
+        # Access authorization: comma-separated list of allowed user emails (empty = allow all authenticated users)
         raw_allowed = os.getenv("ALLOWED_EMAILS", "")
         self.allowed_emails: List[str] = [e.strip().lower() for e in raw_allowed.split(",") if e.strip()]
 
@@ -68,7 +64,7 @@ class WebSettings:
             # In production, debug mode and development bypasses are strictly forbidden
             self.debug = False
             self.allow_dev_auth_bypass = False
-            self.require_cf_access = True
+            self.require_auth = True
 
     @property
     def is_production(self) -> bool:
@@ -76,11 +72,18 @@ class WebSettings:
         return self.environment in ("production", "prod")
 
     @property
-    def cloudflare_certs_url(self) -> str:
-        """Return the public JWKS endpoint for the configured Cloudflare Access team."""
-        if not self.cloudflare_access_team_name:
+    def supabase_certs_url(self) -> str:
+        """Return the public JWKS endpoint for the configured Supabase project."""
+        if not self.supabase_url:
             return ""
-        return f"https://{self.cloudflare_access_team_name}.cloudflareaccess.com/cdn-cgi/access/certs"
+        return f"{self.supabase_url}/auth/v1/.well-known/jwks.json"
+
+    @property
+    def supabase_issuer(self) -> str:
+        """Return the expected JWT issuer string for Supabase Auth."""
+        if not self.supabase_url:
+            return ""
+        return f"{self.supabase_url}/auth/v1"
 
 
 settings = WebSettings()

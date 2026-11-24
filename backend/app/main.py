@@ -25,7 +25,7 @@ async def lifespan(app: FastAPI):
     logger.info(f"Storage directory: {settings.storage_path}")
     logger.info(f"CORS origins configured: {settings.cors_origins}")
     if settings.is_production:
-        logger.info("Production mode active: Interactive Swagger docs disabled, HSTS active, Cloudflare Access JWT validation enforced.")
+        logger.info("Production mode active: Interactive Swagger docs disabled, HSTS active, Supabase JWT validation enforced.")
     yield
     logger.info(f"Shutting down {settings.app_name}")
 
@@ -55,8 +55,6 @@ def create_app() -> FastAPI:
     cors_headers = [
         "Content-Type",
         "Authorization",
-        "Cf-Access-Jwt-Assertion",
-        "Cf-Access-Authenticated-User-Email",
         "X-Requested-With",
         "Accept",
     ] if settings.is_production else ["*"]

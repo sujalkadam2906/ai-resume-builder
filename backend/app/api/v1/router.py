@@ -9,7 +9,7 @@ api_v1_router = APIRouter()
 # 1. Public monitoring probes (Liveness & Readiness for container orchestrators)
 api_v1_router.include_router(health.router)
 
-# 2. Zero-Trust Authenticated Routes (Cloudflare Access JWT Protected)
+# 2. Authenticated Routes (Supabase JWT Protected)
 auth_dependencies = [Depends(get_current_user)]
 
 api_v1_router.include_router(system.router, dependencies=auth_dependencies)

@@ -162,12 +162,12 @@ export const SettingsPage: React.FC = () => {
         <div className="pt-2">
           <div className="flex items-center gap-2 pb-2 border-b border-surface-border">
             <Shield className="w-4 h-4 text-emerald-400" />
-            <h4 className="font-semibold text-text-primary text-xs">Zero-Trust Security Boundary</h4>
+            <h4 className="font-semibold text-text-primary text-xs">Authentication & Security Boundary</h4>
           </div>
 
           <div className="text-xs text-text-secondary space-y-2 pt-2">
             <p>
-              In production, the platform is gated by Cloudflare Access at the DNS edge. All write mutations and PDF/DOCX downloads require verified authentication.
+              In production, the platform is gated by Supabase Authentication. All write mutations and PDF/DOCX downloads require cryptographically verified JWT bearer tokens.
             </p>
             <div className="bg-surface-elevated border border-surface-border rounded-lg p-3 flex items-center justify-between text-xs">
               <span className="text-text-muted">Gate Status:</span>

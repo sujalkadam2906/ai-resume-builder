@@ -1,3 +1,4 @@
+import { supabase } from "@/lib/supabase";
 import type {
   HealthResponse,
   ReadinessResponse,
@@ -45,7 +46,8 @@ import type {
   ATSEvaluationResponse,
 } from "@/types/api";
 
-const API_BASE = "/api/v1";
+const BACKEND_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+const API_BASE = `${BACKEND_BASE}/api/v1`;
 
 export class ApiError extends Error {
   status: number;
@@ -65,6 +67,17 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
   if (options.body && !(options.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
+  }
+
+  // Attach Supabase access token if session exists
+  try {
+    const { data } = await supabase.auth.getSession();
+    const token = data?.session?.access_token;
+    if (token && !headers.has("Authorization")) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
+  } catch (err) {
+    // Session retrieval error - proceed without token (e.g. public endpoints or local dev bypass)
   }
 
   const res = await fetch(url, {
