@@ -15,21 +15,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy and install core Python engine dependencies
-COPY pyproject.toml /app/
-RUN pip install --no-cache-dir -e .
-
-# Copy and install backend requirements
+# 1. Install backend requirements first (cached layer)
 COPY backend/requirements.txt /app/backend/
 RUN pip install --no-cache-dir -r /app/backend/requirements.txt
 
-# Copy application source code
+# 2. Copy source code and files required for editable install of core engine
+COPY pyproject.toml README.md /app/
 COPY src/ /app/src/
+RUN pip install --no-cache-dir -e .
+
+# 3. Copy remaining application source and runtime assets
 COPY backend/ /app/backend/
 COPY profiles/ /app/profiles/
 COPY data/ /app/data/
 
-# Create persistent storage directory
+# Create persistent storage directories
 RUN mkdir -p /app/storage /app/output /app/logs
 
 EXPOSE 8000
