@@ -1,0 +1,69 @@
+# Job Description: Junior AI Automation & Software Engineer
+
+**Company:** Anibrain  
+**Location:** Pune, Maharashtra  
+**Experience:** Fresher / Entry-Level (0–1 year)  
+**Employment Type:** Full-Time  
+**Target Areas:** AI Automation, Python Development, Software Engineering, Workflow Integration
+
+## Role Overview
+
+Anibrain is a VFX and creative technology studio where efficient production workflows, technical innovation and reliable systems are important to delivering creative projects.
+
+We are looking for an entry-level engineering professional interested in developing software tools, AI-powered automation solutions and integrations that improve operational efficiency and simplify repetitive workflows.
+
+The candidate should have practical programming experience, an understanding of API-based integrations and the ability to independently build, test, debug and document software solutions.
+
+## Key Responsibilities
+
+1. Develop Python-based scripts and automation tools to simplify repetitive tasks and workflows.
+2. Integrate Generative AI models and external services through APIs.
+3. Build automated content-processing and document-generation pipelines.
+4. Design modular, maintainable and reusable software components.
+5. Implement error handling, retry mechanisms and fallback strategies to improve application reliability.
+6. Test, debug and troubleshoot software and automation workflows.
+7. Work with technical teams to understand requirements and identify opportunities for process improvement.
+8. Maintain technical documentation and follow version-control practices.
+9. Explore emerging AI technologies and identify practical opportunities for their application.
+
+## Required Technical Skills
+
+**Programming and Development**
+- Python scripting and programming fundamentals.
+- Java and object-oriented programming concepts.
+- HTML, CSS and JavaScript fundamentals.
+- Basic understanding of software development practices.
+
+**AI and API Integration**
+- Experience integrating Generative AI APIs such as Google Gemini.
+- Prompt engineering and structured AI output handling.
+- API requests, responses and error handling.
+- Understanding of AI-assisted workflow automation.
+
+**Backend and Software Engineering**
+- REST API fundamentals.
+- Modular application architecture.
+- Exception handling, debugging and testing.
+- Git and GitHub version control.
+
+**Automation and Productivity**
+- Workflow automation and document processing.
+- Automated validation and quality checks.
+- PDF generation and data processing.
+- Ability to identify repetitive tasks suitable for automation.
+
+## Preferred Qualifications
+
+- Experience building practical Python automation projects.
+- Familiarity with Java, Spring Boot or backend application development.
+- Exposure to databases and cloud deployment.
+- Familiarity with workflow automation tools such as n8n, Make or Zapier.
+- Interest in generative AI applications in creative and media-production workflows.
+
+## Ideal Candidate
+
+- A recent graduate or early-career developer with demonstrable project experience.
+- Strong problem-solving and debugging ability.
+- Comfortable learning new tools and technologies independently.
+- Able to take an idea from requirements through implementation and testing.
+- Interested in applying software engineering and AI to real-world business problems.

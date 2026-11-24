@@ -39,13 +39,19 @@ generated/
 temp/
 tmp/
 backups/
+storage/
 
 # ==============================================================================
-# Build Artifacts
+# Build Artifacts & Frontend Packages
 # ==============================================================================
 dist/
 build/
 *.egg-info/
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+*.tsbuildinfo
 
 # ==============================================================================
 # Private Candidate Data & Local Profiles
@@ -66,6 +72,7 @@ test_debug_ats_Preview.png
 *.pdf
 *.docx
 !docs/pdf/*.pdf
+!docs/requirements/*.pdf
 !docs/assets/*.png
 !docs/assets/*.svg
 !docs/assets/*.jpg
