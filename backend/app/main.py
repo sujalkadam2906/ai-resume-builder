@@ -65,6 +65,7 @@ def create_app() -> FastAPI:
         allow_credentials=True,
         allow_methods=cors_methods,
         allow_headers=cors_headers,
+        expose_headers=["Content-Disposition"],
     )
 
     # 3. Mount API v1 router

@@ -65,6 +65,8 @@ export const ResumeBuilderPage: React.FC = () => {
   const [editorError, setEditorError] = useState<string | null>(null);
   const [activeMobileView, setActiveMobileView] = useState<"edit" | "preview">("edit");
   const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+  const [isDownloadingDocx, setIsDownloadingDocx] = useState(false);
 
   // 1. Fetch Candidate Profiles
   const { data: profilesData } = useQuery({
@@ -184,6 +186,30 @@ export const ResumeBuilderPage: React.FC = () => {
   const profiles = profilesData?.items || [];
   const jds = jdsData?.items || [];
 
+  const handleDownloadPdf = async () => {
+    if (!activeResume) return;
+    try {
+      setIsDownloadingPdf(true);
+      await resumesApi.downloadPdf(activeResume.id, `${activeResume.resume_title || "resume"}.pdf`);
+    } catch (err: any) {
+      alert(`Failed to download PDF: ${err.message || err}`);
+    } finally {
+      setIsDownloadingPdf(false);
+    }
+  };
+
+  const handleDownloadDocx = async () => {
+    if (!activeResume) return;
+    try {
+      setIsDownloadingDocx(true);
+      await resumesApi.downloadDocx(activeResume.id, `${activeResume.resume_title || "resume"}.docx`);
+    } catch (err: any) {
+      alert(`Failed to download DOCX: ${err.message || err}`);
+    } finally {
+      setIsDownloadingDocx(false);
+    }
+  };
+
   // ============================================================================
   // VIEW 1: INTERACTIVE TWO-PANE RESUME EDITOR (When resume_id is active)
   // ============================================================================
@@ -286,15 +312,14 @@ export const ResumeBuilderPage: React.FC = () => {
 
             {/* Export PDF Button (enforced approved) */}
             {isApproved ? (
-              <a
-                href={resumesApi.getExportPdfUrl(activeResume.id)}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-primary hover:bg-brand-hover text-white text-xs font-semibold transition-colors shadow-xs"
+              <button
+                onClick={handleDownloadPdf}
+                disabled={isDownloadingPdf}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-primary hover:bg-brand-hover text-white text-xs font-semibold transition-colors shadow-xs disabled:opacity-60"
               >
-                <Download className="w-3.5 h-3.5" />
-                <span>Download PDF</span>
-              </a>
+                <Download className={`w-3.5 h-3.5 ${isDownloadingPdf ? "animate-bounce" : ""}`} />
+                <span>{isDownloadingPdf ? "Downloading..." : "Download PDF"}</span>
+              </button>
             ) : (
               <button
                 disabled
@@ -308,15 +333,14 @@ export const ResumeBuilderPage: React.FC = () => {
 
             {/* Export DOCX Button (enforced approved) */}
             {isApproved ? (
-              <a
-                href={resumesApi.getExportDocxUrl(activeResume.id)}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-elevated hover:bg-surface-border text-text-primary text-xs font-semibold border border-surface-border transition-colors shadow-2xs"
+              <button
+                onClick={handleDownloadDocx}
+                disabled={isDownloadingDocx}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-elevated hover:bg-surface-border text-text-primary text-xs font-semibold border border-surface-border transition-colors shadow-2xs disabled:opacity-60"
               >
-                <Download className="w-3.5 h-3.5" />
-                <span>DOCX</span>
-              </a>
+                <Download className={`w-3.5 h-3.5 ${isDownloadingDocx ? "animate-bounce" : ""}`} />
+                <span>{isDownloadingDocx ? "Downloading..." : "DOCX"}</span>
+              </button>
             ) : (
               <button
                 disabled

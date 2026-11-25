@@ -31,6 +31,29 @@ export const ResumesPage: React.FC = () => {
   const [candidateFilter, setCandidateFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedResumeForHistory, setSelectedResumeForHistory] = useState<ResumeResponse | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  const handleDownloadPdf = async (res: ResumeResponse) => {
+    try {
+      setDownloadingId(`${res.id}-pdf`);
+      await resumesApi.downloadPdf(res.id, `${res.resume_title || "resume"}.pdf`);
+    } catch (err: any) {
+      alert(`Download failed: ${err.message || err}`);
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  const handleDownloadDocx = async (res: ResumeResponse) => {
+    try {
+      setDownloadingId(`${res.id}-docx`);
+      await resumesApi.downloadDocx(res.id, `${res.resume_title || "resume"}.docx`);
+    } catch (err: any) {
+      alert(`Download failed: ${err.message || err}`);
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   // Fetch Profiles for candidate filtering
   const { data: profilesData } = useQuery({
@@ -278,15 +301,14 @@ export const ResumesPage: React.FC = () => {
 
                   {/* PDF Download */}
                   {isApproved ? (
-                    <a
-                      href={resumesApi.getExportPdfUrl(res.id)}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-primary hover:bg-brand-hover text-white text-xs font-semibold transition-colors shadow-xs"
+                    <button
+                      onClick={() => handleDownloadPdf(res)}
+                      disabled={downloadingId === `${res.id}-pdf`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-primary hover:bg-brand-hover text-white text-xs font-semibold transition-colors shadow-xs disabled:opacity-60"
                     >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>PDF</span>
-                    </a>
+                      <Download className={`w-3.5 h-3.5 ${downloadingId === `${res.id}-pdf` ? "animate-bounce" : ""}`} />
+                      <span>{downloadingId === `${res.id}-pdf` ? "PDF..." : "PDF"}</span>
+                    </button>
                   ) : (
                     <button
                       disabled
@@ -300,15 +322,14 @@ export const ResumesPage: React.FC = () => {
 
                   {/* DOCX Download */}
                   {isApproved ? (
-                    <a
-                      href={resumesApi.getExportDocxUrl(res.id)}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-elevated hover:bg-surface-border text-xs text-text-primary font-semibold border border-surface-border transition-colors shadow-2xs"
+                    <button
+                      onClick={() => handleDownloadDocx(res)}
+                      disabled={downloadingId === `${res.id}-docx`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-elevated hover:bg-surface-border text-xs text-text-primary font-semibold border border-surface-border transition-colors shadow-2xs disabled:opacity-60"
                     >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>DOCX</span>
-                    </a>
+                      <Download className={`w-3.5 h-3.5 ${downloadingId === `${res.id}-docx` ? "animate-bounce" : ""}`} />
+                      <span>{downloadingId === `${res.id}-docx` ? "DOCX..." : "DOCX"}</span>
+                    </button>
                   ) : (
                     <button
                       disabled

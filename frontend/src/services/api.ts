@@ -106,6 +106,61 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+async function downloadBlob(path: string): Promise<{ blob: Blob; filename?: string }> {
+  const url = path.startsWith("http") ? path : `${API_BASE}${path}`;
+  const headers = new Headers();
+
+  // Attach Supabase access token if session exists
+  try {
+    const { data } = await supabase.auth.getSession();
+    const token = data?.session?.access_token;
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
+  } catch (err) {
+    // Session retrieval error
+  }
+
+  const res = await fetch(url, { headers });
+
+  if (!res.ok) {
+    let errMessage = `HTTP ${res.status}: ${res.statusText}`;
+    let errData: any = null;
+    try {
+      errData = await res.json();
+      if (errData && errData.detail) {
+        errMessage = typeof errData.detail === "string" ? errData.detail : JSON.stringify(errData.detail);
+      }
+    } catch {
+      // not json
+    }
+    throw new ApiError(res.status, errMessage, errData);
+  }
+
+  let filename: string | undefined;
+  const disposition = res.headers.get("Content-Disposition");
+  if (disposition) {
+    const filenameMatch = disposition.match(/filename\*?=(?:UTF-8'')?["']?([^;"']+)["']?/i);
+    if (filenameMatch && filenameMatch[1]) {
+      filename = decodeURIComponent(filenameMatch[1].trim());
+    }
+  }
+
+  const blob = await res.blob();
+  return { blob, filename };
+}
+
+export function triggerBlobDownload(blob: Blob, filename: string) {
+  const objectUrl = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = objectUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(objectUrl);
+}
+
 // ==============================================================================
 // 1. System & Health API
 // ==============================================================================
@@ -387,6 +442,16 @@ export const resumesApi = {
 
   getExportPdfUrl: (resumeId: string) => `${API_BASE}/resumes/${resumeId}/export/pdf`,
   getExportDocxUrl: (resumeId: string) => `${API_BASE}/resumes/${resumeId}/export/docx`,
+
+  downloadPdf: async (resumeId: string, fallbackFilename?: string) => {
+    const { blob, filename } = await downloadBlob(`/resumes/${resumeId}/export/pdf`);
+    triggerBlobDownload(blob, filename || fallbackFilename || `resume-${resumeId}.pdf`);
+  },
+
+  downloadDocx: async (resumeId: string, fallbackFilename?: string) => {
+    const { blob, filename } = await downloadBlob(`/resumes/${resumeId}/export/docx`);
+    triggerBlobDownload(blob, filename || fallbackFilename || `resume-${resumeId}.docx`);
+  },
 };
 
 // For backward compatibility
