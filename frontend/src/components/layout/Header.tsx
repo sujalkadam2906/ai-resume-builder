@@ -7,14 +7,13 @@ import {
   Sun,
   Moon,
   Monitor,
-  Terminal,
   ChevronDown,
   Check,
   UserCheck,
-  Shield,
-  Plus,
+  ShieldCheck,
   Copy,
   LogOut,
+  Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
@@ -31,7 +30,7 @@ export const Header: React.FC<HeaderProps> = ({
   isMobileMenuOpen = false,
 }) => {
   const location = useLocation();
-  const { theme, effectiveTheme, setTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const { activeProfileSlug, setActiveProfileSlug } = useActiveProfile();
   const { user, signOut } = useAuth();
   const queryClient = useQueryClient();
@@ -63,7 +62,7 @@ export const Header: React.FC<HeaderProps> = ({
       id: "demo",
       slug: "demo_candidate",
       full_name: "Demo Candidate",
-      display_name: "DEMO CANDIDATE",
+      display_name: "Demo Candidate",
       is_synthetic: true,
       is_archived: false,
       created_at: "",
@@ -90,27 +89,28 @@ export const Header: React.FC<HeaderProps> = ({
   const getPageTitle = (pathname: string) => {
     switch (pathname) {
       case "/":
+      case "/dashboard":
         return "Workspace Overview";
       case "/profiles":
-        return "Candidate Profiles Management";
+        return "Candidate Profiles";
       case "/job-descriptions":
         return "Target Job Descriptions";
       case "/builder":
-        return "Resume Generation & Editor";
+        return "Resume Synthesis";
       case "/resumes":
       case "/history":
         return "Tailored Resume Library";
       case "/ats":
-        return "ATS Heuristic Diagnostics";
+        return "ATS Diagnostic Suite";
       case "/settings":
-        return "System & Provider Settings";
+        return "Platform Settings";
       default:
         return "Workspace";
     }
   };
 
   return (
-    <header className="h-16 bg-surface border-b border-surface-border px-4 sm:px-8 flex items-center justify-between sticky top-0 z-20 backdrop-blur-md bg-opacity-90">
+    <header className="h-20 bg-surface/90 border-b border-surface-border px-4 sm:px-8 flex items-center justify-between sticky top-0 z-30 backdrop-blur-md font-sans">
       {/* Left: Mobile hamburger & Page Title */}
       <div className="flex items-center gap-3">
         <button
@@ -121,31 +121,27 @@ export const Header: React.FC<HeaderProps> = ({
           {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
 
-        <div className="flex items-center gap-2">
-          <h1 className="text-sm sm:text-base font-semibold text-text-primary tracking-tight">
+        <div className="flex items-baseline gap-2.5">
+          <h1 className="font-serif text-lg sm:text-xl font-medium text-text-primary tracking-tight">
             {getPageTitle(location.pathname)}
           </h1>
-          <span className="hidden sm:inline text-text-muted text-xs">/</span>
-          <span className="hidden sm:inline text-xs text-text-muted font-medium">Personal SaaS</span>
+          <span className="hidden sm:inline text-text-muted text-xs">·</span>
+          <span className="hidden sm:inline text-[11px] font-sans uppercase tracking-widest text-[#B79A65] font-semibold">
+            FormaCV
+          </span>
         </div>
       </div>
 
       {/* Right Controls */}
       <div className="flex items-center gap-2 sm:gap-3">
-        {/* CLI Status */}
-        <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-elevated border border-surface-border text-[11px] text-text-muted">
-          <Terminal className="w-3.5 h-3.5 text-brand-primary" />
-          <span className="font-mono">CLI Engine Ready</span>
-        </div>
-
         {/* Theme Switcher Toggle */}
-        <div className="flex items-center bg-surface-elevated border border-surface-border rounded-lg p-0.5">
+        <div className="flex items-center bg-surface-elevated border border-surface-border rounded-lg p-0.5 shadow-2xs">
           <button
             onClick={() => setTheme("light")}
             title="Light theme"
             className={`p-1.5 rounded-md text-xs transition-colors ${
               theme === "light"
-                ? "bg-surface text-brand-primary shadow-xs font-semibold"
+                ? "bg-surface text-[#17263C] shadow-xs font-semibold"
                 : "text-text-muted hover:text-text-primary"
             }`}
           >
@@ -156,7 +152,7 @@ export const Header: React.FC<HeaderProps> = ({
             title="Dark theme"
             className={`p-1.5 rounded-md text-xs transition-colors ${
               theme === "dark"
-                ? "bg-surface text-brand-primary shadow-xs font-semibold"
+                ? "bg-surface text-[#B79A65] shadow-xs font-semibold"
                 : "text-text-muted hover:text-text-primary"
             }`}
           >
@@ -167,7 +163,7 @@ export const Header: React.FC<HeaderProps> = ({
             title="System theme"
             className={`p-1.5 rounded-md text-xs transition-colors ${
               theme === "system"
-                ? "bg-surface text-brand-primary shadow-xs font-semibold"
+                ? "bg-surface text-text-primary shadow-xs font-semibold"
                 : "text-text-muted hover:text-text-primary"
             }`}
           >
@@ -179,9 +175,9 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-            className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg bg-surface-elevated hover:bg-surface-border border border-surface-border text-xs transition-all shadow-2xs"
+            className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-surface-elevated hover:bg-surface-border/60 border border-surface-border text-xs transition-all shadow-subtle"
           >
-            <div className="w-6 h-6 rounded-full bg-brand-primary/15 text-brand-primary flex items-center justify-center font-bold text-xs">
+            <div className="w-6 h-6 rounded-md bg-[#17263C] dark:bg-[#F7F5F0] text-white dark:text-[#101B2B] flex items-center justify-center font-serif font-bold text-xs">
               {activeProfile.display_name?.charAt(0) || activeProfile.full_name?.charAt(0) || "U"}
             </div>
             <div className="text-left hidden sm:block max-w-[120px] md:max-w-[160px]">
@@ -189,7 +185,7 @@ export const Header: React.FC<HeaderProps> = ({
                 {activeProfile.display_name || activeProfile.full_name}
               </div>
               <div className="text-[10px] text-text-muted leading-tight mt-0.5">
-                {activeProfile.is_synthetic ? "Synthetic Profile" : "Verified Profile"}
+                {activeProfile.is_synthetic ? "Demo Template" : "Personal Profile"}
               </div>
             </div>
             <ChevronDown className="w-3.5 h-3.5 text-text-muted ml-0.5" />
@@ -197,13 +193,13 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Dropdown Menu */}
           {isProfileDropdownOpen && (
-            <div className="absolute right-0 mt-2 w-64 bg-surface border border-surface-border rounded-xl shadow-xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
-              <div className="px-3 py-2 border-b border-surface-border text-[11px] font-semibold uppercase tracking-wider text-text-muted flex items-center justify-between">
-                <span>Switch Candidate</span>
-                <span className="text-[10px] text-text-muted lowercase">PostgreSQL</span>
+            <div className="absolute right-0 mt-2 w-72 bg-surface border border-surface-border rounded-xl shadow-elevated py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+              <div className="px-3.5 py-2 border-b border-surface-border text-[10px] font-bold uppercase tracking-wider text-[#B79A65] flex items-center justify-between">
+                <span>Active Profile</span>
+                <span className="text-[9px] text-text-muted font-mono">Isolated</span>
               </div>
 
-              <div className="max-h-60 overflow-y-auto p-1 space-y-0.5">
+              <div className="max-h-60 overflow-y-auto p-1.5 space-y-1">
                 {profiles.map((p) => {
                   const isSelected = p.slug === activeProfileSlug;
                   return (
@@ -213,35 +209,35 @@ export const Header: React.FC<HeaderProps> = ({
                         setActiveProfileSlug(p.slug);
                         setIsProfileDropdownOpen(false);
                       }}
-                      className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-left text-xs transition-colors ${
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs transition-colors ${
                         isSelected
-                          ? "bg-brand-primary/10 text-brand-primary font-medium"
+                          ? "bg-[#17263C]/10 dark:bg-white/10 text-text-primary font-semibold"
                           : "text-text-secondary hover:text-text-primary hover:bg-surface-elevated"
                       }`}
                     >
-                      <div className="flex items-center gap-2 truncate">
+                      <div className="flex items-center gap-2.5 truncate">
                         <div
-                          className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${
+                          className={`w-6 h-6 rounded-md flex items-center justify-center text-xs font-serif font-bold ${
                             p.is_synthetic
-                              ? "bg-purple-500/15 text-purple-400"
-                              : "bg-emerald-500/15 text-emerald-400"
+                              ? "bg-[#B79A65]/15 text-[#8F7546] dark:text-[#D4BC8B]"
+                              : "bg-[#315C4B]/15 text-[#315C4B] dark:text-[#88C4A6]"
                           }`}
                         >
                           {p.display_name?.charAt(0) || "P"}
                         </div>
                         <div className="truncate">
                           <div className="text-text-primary font-medium truncate">{p.full_name}</div>
-                          <div className="text-[10px] text-text-muted flex items-center gap-1">
-                            <span>{p.slug}</span>
+                          <div className="text-[10px] text-text-muted flex items-center gap-1.5">
+                            <span className="font-mono">{p.slug}</span>
                             {p.is_synthetic ? (
-                              <span className="text-[9px] px-1 rounded bg-purple-500/10 text-purple-400 font-mono">Template</span>
+                              <span className="text-[9px] px-1 py-0.2 rounded bg-[#B79A65]/10 text-[#8F7546] dark:text-[#D4BC8B]">Template</span>
                             ) : (
-                              <span className="text-[9px] px-1 rounded bg-emerald-500/10 text-emerald-400 font-mono">Personal</span>
+                              <span className="text-[9px] px-1 py-0.2 rounded bg-[#315C4B]/10 text-[#315C4B] dark:text-[#88C4A6]">Personal</span>
                             )}
                           </div>
                         </div>
                       </div>
-                      {isSelected && <Check className="w-3.5 h-3.5 text-brand-primary shrink-0" />}
+                      {isSelected && <Check className="w-3.5 h-3.5 text-[#315C4B] dark:text-[#88C4A6] shrink-0" />}
                     </button>
                   );
                 })}
@@ -249,30 +245,30 @@ export const Header: React.FC<HeaderProps> = ({
 
               {/* Quick Clone Template Action if active profile is a template */}
               {activeProfile.is_synthetic && (
-                <div className="p-1 border-t border-surface-border">
+                <div className="p-1.5 border-t border-surface-border">
                   <button
                     onClick={() => cloneMutation.mutate(activeProfile.slug)}
                     disabled={cloneMutation.isPending}
-                    className="w-full flex items-center justify-center gap-2 px-2.5 py-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 text-xs font-medium transition-colors"
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-[#315C4B]/10 hover:bg-[#315C4B]/20 text-[#315C4B] dark:text-[#88C4A6] text-xs font-semibold transition-colors"
                   >
                     <Copy className="w-3.5 h-3.5" />
-                    <span>{cloneMutation.isPending ? "Cloning..." : "Clone Template to Workspace"}</span>
+                    <span>{cloneMutation.isPending ? "Cloning..." : "Clone Template to My Workspace"}</span>
                   </button>
                 </div>
               )}
 
               {/* User Account / Logout section */}
               {user && (
-                <div className="mt-1 pt-1 border-t border-surface-border px-1">
-                  <div className="px-2.5 py-1.5 text-[11px] text-text-muted truncate">
-                    Signed in as <span className="font-medium text-text-secondary">{user.email}</span>
+                <div className="mt-1 pt-1.5 border-t border-surface-border px-1.5">
+                  <div className="px-3 py-1.5 text-[11px] text-text-muted truncate">
+                    Signed in as <span className="font-semibold text-text-primary">{user.email}</span>
                   </div>
                   <button
                     onClick={() => {
                       setIsProfileDropdownOpen(false);
                       signOut();
                     }}
-                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-xs text-red-500 hover:bg-red-500/10 transition-colors"
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 font-medium transition-colors"
                   >
                     <LogOut className="w-3.5 h-3.5" />
                     <span>Sign Out</span>

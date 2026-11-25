@@ -4,521 +4,280 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Users,
   Briefcase,
-  Cpu,
-  Target,
+  PenTool,
   ArrowRight,
-  ShieldCheck,
   CheckCircle2,
-  AlertCircle,
   FileText,
   Plus,
-  Lock,
-  Layers,
-  Sparkles,
-  ExternalLink,
   Download,
+  Target,
+  Sparkles,
+  ChevronRight,
+  Layers,
 } from "lucide-react";
 import {
   profilesApi,
   jobDescriptionsApi,
   resumesApi,
-  systemApi,
 } from "@/services/api";
+import { useAuth } from "@/context/AuthContext";
 import { useActiveProfile } from "@/context/ActiveProfileContext";
 
 export const DashboardPage: React.FC = () => {
+  const { user } = useAuth();
   const { activeProfileSlug, setActiveProfileSlug } = useActiveProfile();
 
-  // 1. Fetch Profiles
-  const {
-    data: profilesData,
-    isLoading: profilesLoading,
-    error: profilesError,
-  } = useQuery({
+  // Fetch Profiles
+  const { data: profilesData, isLoading: profilesLoading } = useQuery({
     queryKey: ["dashboard-profiles"],
-    queryFn: () => profilesApi.list(1, 10, true),
+    queryFn: () => profilesApi.list(1, 10, false),
   });
 
-  // 2. Fetch Job Descriptions
-  const {
-    data: jdsData,
-    isLoading: jdsLoading,
-  } = useQuery({
+  // Fetch Job Descriptions
+  const { data: jdsData, isLoading: jdsLoading } = useQuery({
     queryKey: ["dashboard-jds"],
-    queryFn: () => jobDescriptionsApi.list(undefined, 1, 5),
+    queryFn: () => jobDescriptionsApi.list(undefined, 1, 10),
   });
 
-  // 3. Fetch Resumes
-  const {
-    data: resumesData,
-    isLoading: resumesLoading,
-  } = useQuery({
+  // Fetch Resumes
+  const { data: resumesData, isLoading: resumesLoading } = useQuery({
     queryKey: ["dashboard-resumes"],
-    queryFn: () => resumesApi.list(undefined, undefined, 1, 5),
-  });
-
-  // 4. Fetch AI Providers Status
-  const {
-    data: providersData,
-    isLoading: providersLoading,
-  } = useQuery({
-    queryKey: ["dashboard-providers"],
-    queryFn: () => systemApi.getProvidersStatus(),
+    queryFn: () => resumesApi.list(undefined, undefined, 1, 10),
   });
 
   const profiles = profilesData?.items || [];
   const jds = jdsData?.items || [];
   const resumes = resumesData?.items || [];
-  const approvedResumesCount = resumes.filter((r) => r.status === "approved").length;
+
+  const userName =
+    user?.user_metadata?.full_name ||
+    user?.email?.split("@")[0] ||
+    "Professional";
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 18) return "Good afternoon";
+    return "Good evening";
+  };
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto pb-12">
-      {/* Welcome & Quick Action Banner */}
-      <div className="bg-gradient-to-r from-surface to-surface-elevated border border-surface-border rounded-xl p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shadow-sm">
-        <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-brand-primary/10 border border-brand-primary/20 text-brand-primary text-xs font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse" />
-            PostgreSQL 16 Connected · Real Database Active
+    <div className="space-y-8 max-w-6xl mx-auto pb-16 font-sans">
+      {/* Editorial Welcome Header */}
+      <div className="bg-surface rounded-2xl p-6 sm:p-10 border border-surface-border shadow-card flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden">
+        <div className="space-y-2 max-w-2xl relative z-10">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#B79A65]/30 bg-[#B79A65]/10 text-[#8F7546] dark:text-[#D4BC8B] text-xs font-semibold tracking-wide">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>FormaCV Executive Workspace</span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-text-primary">
-            Candidate Resume Generation & ATS Platform
-          </h2>
-          <p className="text-xs sm:text-sm text-text-secondary max-w-2xl leading-relaxed">
-            Multi-profile management, deterministic job description analysis, explainable 45/25/20/10 project selection, and one-page ATS resume compilation.
+          <h1 className="font-serif text-2xl sm:text-4xl font-medium tracking-tight text-text-primary">
+            {getGreeting()}, <span className="capitalize">{userName}</span>.
+          </h1>
+          <p className="text-sm text-text-secondary leading-relaxed">
+            Craft a career that gets noticed. Tailor your verified accomplishments to target opportunities with deterministic ATS precision.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-          <Link
-            to="/job-descriptions"
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-surface-elevated hover:bg-surface-border border border-surface-border text-text-primary text-xs font-medium transition-colors shadow-2xs"
-          >
-            <Briefcase className="w-3.5 h-3.5 text-brand-primary" />
-            <span>Add Job Description</span>
-          </Link>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0 relative z-10 w-full md:w-auto">
           <Link
             to="/builder"
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-brand-primary hover:bg-brand-hover text-white text-xs font-medium transition-colors shadow-xs"
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold bg-[#17263C] text-white hover:bg-[#101B2B] dark:bg-[#F7F5F0] dark:text-[#101B2B] dark:hover:bg-white shadow-card hover:shadow-elevated transition-all"
           >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Tailor Resume</span>
+            <PenTool className="w-4 h-4" />
+            <span>Tailor New Resume</span>
+            <ArrowRight className="w-4 h-4 ml-1" />
           </Link>
         </div>
       </div>
 
-      {/* Live Metrics Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Metric 1: Profiles */}
-        <div className="bg-surface border border-surface-border rounded-xl p-5 space-y-2 hover:border-brand-primary/30 transition-colors">
-          <div className="flex items-center justify-between text-text-muted">
+      {/* Key Metric Highlights */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+        <div className="bg-surface rounded-xl p-5 border border-surface-border shadow-subtle hover:border-[#B79A65]/40 transition-colors">
+          <div className="flex items-center justify-between text-text-muted mb-2">
+            <span className="text-xs font-semibold uppercase tracking-wider">Tailored Resumes</span>
+            <FileText className="w-4 h-4 text-[#315C4B] dark:text-[#88C4A6]" />
+          </div>
+          <div className="text-3xl font-serif font-bold text-text-primary">
+            {resumesLoading ? "—" : resumesData?.total ?? 0}
+          </div>
+          <p className="text-xs text-text-muted mt-1">
+            {resumes.filter((r) => r.status === "approved").length} approved executive manifests
+          </p>
+        </div>
+
+        <div className="bg-surface rounded-xl p-5 border border-surface-border shadow-subtle hover:border-[#B79A65]/40 transition-colors">
+          <div className="flex items-center justify-between text-text-muted mb-2">
             <span className="text-xs font-semibold uppercase tracking-wider">Candidate Profiles</span>
-            <Users className="w-4 h-4 text-brand-primary" />
+            <Users className="w-4 h-4 text-[#17263C] dark:text-[#B79A65]" />
           </div>
-          <div className="text-2xl font-bold text-text-primary">
-            {profilesLoading ? "..." : profilesData?.total ?? 0}
+          <div className="text-3xl font-serif font-bold text-text-primary">
+            {profilesLoading ? "—" : profilesData?.total ?? 0}
           </div>
-          <p className="text-xs text-text-muted">
-            {profiles.length > 0
-              ? `${profiles.filter((p) => !p.is_synthetic).length} Verified, ${profiles.filter((p) => p.is_synthetic).length} Synthetic`
-              : "PostgreSQL Database"}
+          <p className="text-xs text-text-muted mt-1">
+            {profiles.filter((p) => !p.is_synthetic).length} personal, {profiles.filter((p) => p.is_synthetic).length} shared demo
           </p>
         </div>
 
-        {/* Metric 2: Job Descriptions */}
-        <div className="bg-surface border border-surface-border rounded-xl p-5 space-y-2 hover:border-brand-primary/30 transition-colors">
-          <div className="flex items-center justify-between text-text-muted">
-            <span className="text-xs font-semibold uppercase tracking-wider">Job Descriptions</span>
-            <Briefcase className="w-4 h-4 text-emerald-400" />
+        <div className="bg-surface rounded-xl p-5 border border-surface-border shadow-subtle hover:border-[#B79A65]/40 transition-colors">
+          <div className="flex items-center justify-between text-text-muted mb-2">
+            <span className="text-xs font-semibold uppercase tracking-wider">Target JDs Analyzed</span>
+            <Briefcase className="w-4 h-4 text-[#B79A65]" />
           </div>
-          <div className="text-2xl font-bold text-text-primary">
-            {jdsLoading ? "..." : jdsData?.total ?? 0}
+          <div className="text-3xl font-serif font-bold text-text-primary">
+            {jdsLoading ? "—" : jdsData?.total ?? 0}
           </div>
-          <p className="text-xs text-text-muted">Extracted requirement matrices</p>
-        </div>
-
-        {/* Metric 3: Resumes Generated */}
-        <div className="bg-surface border border-surface-border rounded-xl p-5 space-y-2 hover:border-brand-primary/30 transition-colors">
-          <div className="flex items-center justify-between text-text-muted">
-            <span className="text-xs font-semibold uppercase tracking-wider">Resumes & Versions</span>
-            <Layers className="w-4 h-4 text-purple-400" />
-          </div>
-          <div className="text-2xl font-bold text-text-primary">
-            {resumesLoading ? "..." : resumesData?.total ?? 0}
-          </div>
-          <p className="text-xs text-text-muted">
-            {resumes.length > 0
-              ? `${approvedResumesCount} Approved, ${resumes.length - approvedResumesCount} Drafts`
-              : "Draft & Approved Manifests"}
-          </p>
-        </div>
-
-        {/* Metric 4: AI Engine Cascade */}
-        <div className="bg-surface border border-surface-border rounded-xl p-5 space-y-2 hover:border-brand-primary/30 transition-colors">
-          <div className="flex items-center justify-between text-text-muted">
-            <span className="text-xs font-semibold uppercase tracking-wider">AI Fallback Engine</span>
-            <Cpu className="w-4 h-4 text-amber-400" />
-          </div>
-          <div className="text-2xl font-bold text-text-primary">
-            {providersLoading ? "..." : `${providersData?.providers.length ?? 6} Tiers`}
-          </div>
-          <p className="text-xs text-text-muted truncate">
-            Primary: {providersData?.primary_provider || "Offline Engine"}
-          </p>
+          <p className="text-xs text-text-muted mt-1">Structured keyword match matrices</p>
         </div>
       </div>
 
-      {/* Candidate Profiles Overview Cards */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
+      {/* Primary Workflow Actions (3 Core Cards) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Workflow 1: Tailor Resume */}
+        <Link
+          to="/builder"
+          className="group bg-surface rounded-xl p-6 border border-surface-border shadow-subtle hover:shadow-card hover:border-[#B79A65]/40 transition-all flex flex-col justify-between"
+        >
           <div>
-            <h3 className="text-base font-semibold text-text-primary flex items-center gap-2">
-              <Users className="w-4 h-4 text-brand-primary" />
-              Candidate Profiles
+            <div className="w-10 h-10 rounded-lg bg-[#17263C] text-white dark:bg-[#F7F5F0] dark:text-[#101B2B] flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+              <PenTool className="w-5 h-5" />
+            </div>
+            <h3 className="font-serif text-lg font-semibold text-text-primary mb-1.5 flex items-center justify-between">
+              <span>Resume Tailoring</span>
+              <ChevronRight className="w-4 h-4 text-text-muted group-hover:translate-x-1 transition-transform" />
             </h3>
-            <p className="text-xs text-text-muted mt-0.5">
-              Profiles stored in PostgreSQL with complete verified credentials, skills, and projects
+            <p className="text-xs text-text-secondary leading-relaxed">
+              Synthesize a targeted, single-page A4 resume tailored specifically to an active job description.
+            </p>
+          </div>
+          <div className="mt-5 pt-4 border-t border-surface-border text-xs font-semibold text-[#315C4B] dark:text-[#88C4A6]">
+            Start Tailoring →
+          </div>
+        </Link>
+
+        {/* Workflow 2: Profiles */}
+        <Link
+          to="/profiles"
+          className="group bg-surface rounded-xl p-6 border border-surface-border shadow-subtle hover:shadow-card hover:border-[#B79A65]/40 transition-all flex flex-col justify-between"
+        >
+          <div>
+            <div className="w-10 h-10 rounded-lg bg-[#315C4B] text-white flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+              <Users className="w-5 h-5" />
+            </div>
+            <h3 className="font-serif text-lg font-semibold text-text-primary mb-1.5 flex items-center justify-between">
+              <span>Candidate Profiles</span>
+              <ChevronRight className="w-4 h-4 text-text-muted group-hover:translate-x-1 transition-transform" />
+            </h3>
+            <p className="text-xs text-text-secondary leading-relaxed">
+              Manage your verified career repository: projects, experiences, skills, education, and credentials.
+            </p>
+          </div>
+          <div className="mt-5 pt-4 border-t border-surface-border text-xs font-semibold text-[#315C4B] dark:text-[#88C4A6]">
+            Manage Accomplishments →
+          </div>
+        </Link>
+
+        {/* Workflow 3: Target JDs */}
+        <Link
+          to="/job-descriptions"
+          className="group bg-surface rounded-xl p-6 border border-surface-border shadow-subtle hover:shadow-card hover:border-[#B79A65]/40 transition-all flex flex-col justify-between"
+        >
+          <div>
+            <div className="w-10 h-10 rounded-lg bg-[#101B2B] text-white flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+              <Briefcase className="w-5 h-5 text-[#B79A65]" />
+            </div>
+            <h3 className="font-serif text-lg font-semibold text-text-primary mb-1.5 flex items-center justify-between">
+              <span>Target Opportunities</span>
+              <ChevronRight className="w-4 h-4 text-text-muted group-hover:translate-x-1 transition-transform" />
+            </h3>
+            <p className="text-xs text-text-secondary leading-relaxed">
+              Ingest job postings, extract semantic skill markers, and evaluate ATS compatibility before applying.
+            </p>
+          </div>
+          <div className="mt-5 pt-4 border-t border-surface-border text-xs font-semibold text-[#315C4B] dark:text-[#88C4A6]">
+            View Opportunities →
+          </div>
+        </Link>
+      </div>
+
+      {/* Recent Tailored Resumes Section */}
+      <div className="bg-surface rounded-2xl p-6 sm:p-8 border border-surface-border shadow-card">
+        <div className="flex items-center justify-between pb-6 border-b border-surface-border">
+          <div>
+            <h2 className="font-serif text-xl font-medium text-text-primary">
+              Recent Tailored Resumes
+            </h2>
+            <p className="text-xs text-text-secondary mt-0.5">
+              Review, edit, and export your tailored single-page documents
             </p>
           </div>
           <Link
-            to="/profiles"
-            className="text-xs text-brand-primary hover:text-brand-hover font-medium flex items-center gap-1"
+            to="/resumes"
+            className="text-xs font-semibold text-[#315C4B] dark:text-[#88C4A6] hover:underline flex items-center gap-1"
           >
-            <span>Manage All Profiles</span>
+            <span>View All Library</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 
-        {profilesLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-surface border border-surface-border rounded-xl p-6 h-40 animate-pulse" />
-            <div className="bg-surface border border-surface-border rounded-xl p-6 h-40 animate-pulse" />
+        {resumesLoading ? (
+          <div className="py-12 text-center text-xs text-text-muted">
+            <div className="w-6 h-6 border-2 border-[#17263C] dark:border-[#B79A65] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+            Loading recent manifests...
           </div>
-        ) : profilesError ? (
-          <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-6 text-center text-xs text-red-400">
-            Failed to load candidate profiles from PostgreSQL API.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {profiles.map((cand) => {
-              const isSelected = cand.slug === activeProfileSlug;
-              return (
-                <div
-                  key={cand.id}
-                  className={`bg-surface border rounded-xl p-5 space-y-4 transition-all ${
-                    isSelected
-                      ? "border-brand-primary/50 shadow-xs ring-1 ring-brand-primary/20"
-                      : "border-surface-border hover:border-surface-border/80"
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${
-                          cand.is_synthetic
-                            ? "bg-purple-500/15 text-purple-400"
-                            : "bg-emerald-500/15 text-emerald-400"
-                        }`}
-                      >
-                        {cand.display_name?.charAt(0) || "U"}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-semibold text-text-primary text-sm">
-                            {cand.full_name}
-                          </h4>
-                          {isSelected && (
-                            <span className="text-[10px] px-1.5 py-0.2 rounded bg-brand-primary/10 text-brand-primary font-medium border border-brand-primary/20">
-                              Active Context
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs text-text-muted font-mono">{cand.slug}</p>
-                      </div>
-                    </div>
-
-                    {cand.is_synthetic ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-purple-500/10 text-purple-400 border border-purple-500/20">
-                        <Cpu className="w-3 h-3" />
-                        Demo Candidate
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                        <CheckCircle2 className="w-3 h-3" />
-                        Verified Candidate
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="text-xs text-text-secondary space-y-1.5 border-t border-surface-border pt-3">
-                    <div className="flex justify-between">
-                      <span className="text-text-muted">Headline:</span>
-                      <span className="text-text-primary font-medium truncate max-w-[240px]">
-                        {cand.professional_headline || "Software Development Engineer"}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-text-muted">Location:</span>
-                      <span className="text-text-primary">{cand.location || "Pune, India"}</span>
-                    </div>
-                    {cand.slug === "sujal" && (
-                      <div className="flex justify-between items-center text-emerald-400 font-medium">
-                        <span className="text-text-muted">Pinned Rule:</span>
-                        <span className="flex items-center gap-1 text-[11px]">
-                          <Lock className="w-3 h-3 text-emerald-400" />
-                          Bearing Fault Diagnosis (#2) Protected
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex items-center justify-between pt-2 border-t border-surface-border">
-                    <button
-                      onClick={() => setActiveProfileSlug(cand.slug)}
-                      className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors ${
-                        isSelected
-                          ? "bg-brand-primary text-white border-brand-primary"
-                          : "bg-surface-elevated text-text-secondary hover:text-text-primary border-surface-border"
-                      }`}
-                    >
-                      {isSelected ? "Active Profile" : "Select as Active"}
-                    </button>
-                    <Link
-                      to="/profiles"
-                      className="text-xs text-text-muted hover:text-brand-primary flex items-center gap-1"
-                    >
-                      <span>Edit Profile</span>
-                      <ArrowRight className="w-3 h-3" />
-                    </Link>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Grid: Recent Job Descriptions & Recent Resumes */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left: Recent Target Job Descriptions */}
-        <div className="bg-surface border border-surface-border rounded-xl p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-semibold text-text-primary flex items-center gap-2">
-                <Briefcase className="w-4 h-4 text-emerald-400" />
-                Recent Target Job Descriptions
-              </h3>
-              <p className="text-xs text-text-muted mt-0.5">
-                Ingested job postings with extracted requirement matrices
-              </p>
+        ) : resumes.length === 0 ? (
+          /* Premium Empty State */
+          <div className="py-12 text-center max-w-md mx-auto">
+            <div className="w-12 h-12 rounded-full bg-[#B79A65]/15 text-[#8F7546] dark:text-[#D4BC8B] flex items-center justify-center mx-auto mb-4">
+              <FileText className="w-6 h-6" />
             </div>
-            <Link
-              to="/job-descriptions"
-              className="text-xs text-brand-primary hover:text-brand-hover font-medium flex items-center gap-1"
-            >
-              <span>View All</span>
-              <ArrowRight className="w-3 h-3" />
-            </Link>
-          </div>
-
-          {jdsLoading ? (
-            <div className="space-y-2">
-              <div className="h-14 bg-surface-elevated rounded-lg animate-pulse" />
-              <div className="h-14 bg-surface-elevated rounded-lg animate-pulse" />
-            </div>
-          ) : jds.length === 0 ? (
-            <div className="border border-dashed border-surface-border rounded-lg p-6 text-center space-y-2">
-              <Briefcase className="w-6 h-6 text-text-muted mx-auto" />
-              <p className="text-xs font-medium text-text-primary">No Job Descriptions Added Yet</p>
-              <p className="text-[11px] text-text-muted max-w-xs mx-auto">
-                Paste target job descriptions to extract skill requirements and calculate candidate match scores.
-              </p>
-              <Link
-                to="/job-descriptions"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-elevated hover:bg-surface-border border border-surface-border text-xs text-text-primary font-medium"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Add Job Description</span>
-              </Link>
-            </div>
-          ) : (
-            <div className="space-y-2.5">
-              {jds.map((jd) => (
-                <div
-                  key={jd.id}
-                  className="bg-surface-elevated/60 border border-surface-border rounded-lg p-3 flex items-center justify-between hover:border-brand-primary/30 transition-colors"
-                >
-                  <div className="space-y-1 min-w-0 pr-2">
-                    <div className="text-xs font-semibold text-text-primary truncate">
-                      {jd.job_title || "Software Engineer"}
-                    </div>
-                    <div className="text-[11px] text-text-muted flex items-center gap-2">
-                      <span className="text-text-secondary font-medium">{jd.company_name || "Company"}</span>
-                      <span>·</span>
-                      <span>{jd.extracted_skills?.length || 0} skills</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {jd.match_percentage !== null && jd.match_percentage !== undefined && (
-                      <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-brand-primary/10 text-brand-primary border border-brand-primary/20">
-                        {Math.round(jd.match_percentage)}% Match
-                      </span>
-                    )}
-                    <Link
-                      to="/job-descriptions"
-                      className="p-1 rounded text-text-muted hover:text-text-primary hover:bg-surface"
-                      title="Inspect analysis"
-                    >
-                      <ArrowRight className="w-4 h-4" />
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Right: Recent Tailored Resumes */}
-        <div className="bg-surface border border-surface-border rounded-xl p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-semibold text-text-primary flex items-center gap-2">
-                <FileText className="w-4 h-4 text-brand-primary" />
-                Tailored Resumes
-              </h3>
-              <p className="text-xs text-text-muted mt-0.5">
-                Saved resume drafts and approved single-page versions
-              </p>
-            </div>
-            <Link
-              to="/resumes"
-              className="text-xs text-brand-primary hover:text-brand-hover font-medium flex items-center gap-1"
-            >
-              <span>View Library</span>
-              <ArrowRight className="w-3 h-3" />
-            </Link>
-          </div>
-
-          {resumesLoading ? (
-            <div className="space-y-2">
-              <div className="h-14 bg-surface-elevated rounded-lg animate-pulse" />
-              <div className="h-14 bg-surface-elevated rounded-lg animate-pulse" />
-            </div>
-          ) : resumes.length === 0 ? (
-            <div className="border border-dashed border-surface-border rounded-lg p-6 text-center space-y-2">
-              <FileText className="w-6 h-6 text-text-muted mx-auto" />
-              <p className="text-xs font-medium text-text-primary">No Web Resumes Generated Yet</p>
-              <p className="text-[11px] text-text-muted max-w-xs mx-auto">
-                Generate your first tailored resume using the candidate profile and target job description.
-              </p>
+            <h3 className="font-serif text-lg font-semibold text-text-primary">
+              No tailored resumes generated yet
+            </h3>
+            <p className="text-xs text-text-secondary mt-2 leading-relaxed">
+              Select your candidate profile, supply a job description, and FormaCV will synthesize a tailored single-page resume with ATS validation.
+            </p>
+            <div className="mt-6">
               <Link
                 to="/builder"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-primary hover:bg-brand-hover text-white text-xs font-medium shadow-xs"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-semibold bg-[#17263C] text-white hover:bg-[#101B2B] dark:bg-[#F7F5F0] dark:text-[#101B2B] shadow-sm transition-all"
               >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Open Resume Builder</span>
+                <Plus className="w-3.5 h-3.5" />
+                <span>Create Your First Resume</span>
               </Link>
             </div>
-          ) : (
-            <div className="space-y-2.5">
-              {resumes.map((res) => (
-                <div
-                  key={res.id}
-                  className="bg-surface-elevated/60 border border-surface-border rounded-lg p-3 flex items-center justify-between hover:border-brand-primary/30 transition-colors"
-                >
-                  <div className="space-y-1 min-w-0 pr-2">
-                    <div className="text-xs font-semibold text-text-primary truncate">
-                      {res.resume_title}
-                    </div>
-                    <div className="text-[11px] text-text-muted flex items-center gap-2">
-                      <span className="font-mono">v{res.current_version}</span>
-                      <span>·</span>
-                      <span
-                        className={`font-medium ${
-                          res.status === "approved" ? "text-emerald-400" : "text-amber-400"
-                        }`}
-                      >
-                        {res.status === "approved" ? "Approved" : "Draft"}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {res.status === "approved" ? (
-                      <a
-                        href={resumesApi.getExportPdfUrl(res.id)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded bg-brand-primary/10 text-brand-primary hover:bg-brand-primary/20 text-xs font-medium border border-brand-primary/20"
-                      >
-                        <Download className="w-3 h-3" />
-                        <span>PDF</span>
-                      </a>
-                    ) : (
-                      <Link
-                        to="/builder"
-                        className="text-xs text-brand-primary hover:text-brand-hover font-medium flex items-center gap-1"
-                      >
-                        <span>Edit</span>
-                        <ArrowRight className="w-3 h-3" />
-                      </Link>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Multi-Provider AI Fallback Cascade Status */}
-      <div className="bg-surface border border-surface-border rounded-xl p-5 sm:p-6 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div>
-            <h3 className="text-sm sm:text-base font-semibold text-text-primary flex items-center gap-2">
-              <Cpu className="w-4 h-4 text-brand-primary" />
-              Multi-Provider AI Fallback Cascade
-            </h3>
-            <p className="text-xs text-text-muted mt-0.5">
-              Live provider health and failover priority chain managed by the Python core engine
-            </p>
-          </div>
-          <span className="text-[11px] font-mono px-2.5 py-1 rounded bg-surface-elevated border border-surface-border text-text-muted self-start sm:self-auto">
-            Priority-Ranked Fallback
-          </span>
-        </div>
-
-        {providersLoading ? (
-          <div className="text-center py-6 text-xs text-text-muted">
-            Checking AI provider connectivity...
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {providersData?.providers.map((p) => (
+          <div className="divide-y divide-surface-border">
+            {resumes.slice(0, 5).map((resume) => (
               <div
-                key={p.provider}
-                className="bg-surface-elevated/60 border border-surface-border rounded-lg p-3 space-y-2 hover:border-surface-border/90 transition-colors"
+                key={resume.id}
+                className="py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-surface-elevated/40 px-2 rounded-lg transition-colors"
               >
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-xs text-text-primary flex items-center gap-1.5">
-                    <span className="w-5 h-5 rounded bg-surface border border-surface-border text-[10px] flex items-center justify-center font-bold text-text-muted">
-                      #{p.priority_rank}
-                    </span>
-                    {p.provider}
-                  </span>
-                  {p.configured ? (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-400">
-                      <CheckCircle2 className="w-3 h-3" />
-                      Ready
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-text-muted">
-                      <AlertCircle className="w-3 h-3" />
-                      Fallback
-                    </span>
-                  )}
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-[#17263C]/10 dark:bg-white/10 text-text-primary flex items-center justify-center shrink-0 mt-0.5">
+                    <FileText className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-text-primary">
+                      {resume.resume_title || resume.editable_manifest?.target_role || "Tailored Resume"}
+                    </div>
+                    <div className="text-xs text-text-muted flex items-center gap-2 mt-0.5">
+                      <span>{resume.editable_manifest?.personal_info?.full_name || resume.editable_manifest?.target_company || "Candidate"}</span>
+                      <span>·</span>
+                      <span>v{resume.current_version}</span>
+                      <span>·</span>
+                      <span className="capitalize">{resume.status}</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between text-[10px] text-text-muted border-t border-surface-border/50 pt-2">
-                  <span>Auth: {p.auth_status}</span>
-                  <span className="font-mono">{p.free_tier ? "Free Tier" : "Pay-Per-Token"}</span>
+
+                <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-end">
+                  <Link
+                    to={`/builder?resume_id=${resume.id}`}
+                    className="px-3 py-1.5 rounded-md text-xs font-medium border border-surface-border bg-surface hover:bg-surface-elevated text-text-primary transition-colors"
+                  >
+                    Open Editor
+                  </Link>
                 </div>
               </div>
             ))}

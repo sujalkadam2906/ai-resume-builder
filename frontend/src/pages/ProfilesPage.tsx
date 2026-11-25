@@ -241,12 +241,12 @@ export const ProfilesPage: React.FC = () => {
       {/* Top Header & Actions */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-text-primary flex items-center gap-2">
-            <Users className="w-5 h-5 text-brand-primary" />
-            Candidate Profiles Management
-          </h2>
-          <p className="text-xs sm:text-sm text-text-secondary">
-            Maintain independent candidate entities, verified skills, and project repositories in PostgreSQL.
+          <h1 className="font-serif text-2xl sm:text-3xl font-bold tracking-tight text-text-primary flex items-center gap-2.5">
+            <Users className="w-6 h-6 text-forma-emerald" />
+            <span>Candidate Dossiers</span>
+          </h1>
+          <p className="text-xs sm:text-sm text-text-secondary mt-1">
+            Maintain verified candidate credentials, projects, and career milestones in strict PostgreSQL isolation.
           </p>
         </div>
 
@@ -255,7 +255,7 @@ export const ProfilesPage: React.FC = () => {
             setFormError(null);
             setIsNewProfileModalOpen(true);
           }}
-          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-brand-primary hover:bg-brand-hover text-white text-xs font-medium transition-colors shadow-xs"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-forma bg-forma-navy hover:bg-forma-deep-navy dark:bg-forma-emerald dark:hover:bg-forma-emerald-hover text-white text-xs font-semibold transition-all shadow-subtle hover:shadow-card"
         >
           <Plus className="w-4 h-4" />
           <span>New Candidate Profile</span>

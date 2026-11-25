@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
-import { Mail, ArrowRight, AlertCircle, CheckCircle2, ShieldCheck, ArrowLeft } from "lucide-react";
+import { Mail, ArrowRight, AlertCircle, CheckCircle2, ArrowLeft } from "lucide-react";
+import { FormaLogo } from "@/components/brand/FormaLogo";
 
 export const ForgotPasswordPage: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -32,32 +33,34 @@ export const ForgotPasswordPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 text-slate-900 dark:text-slate-100 transition-colors">
+    <div className="min-h-screen bg-background flex flex-col justify-center py-12 sm:px-6 lg:px-8 text-text-primary transition-colors font-sans">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <div className="mx-auto w-12 h-12 bg-primary-600 rounded-xl flex items-center justify-center text-white shadow-lg mb-4">
-          <ShieldCheck className="w-7 h-7" />
-        </div>
-        <h2 className="text-3xl font-extrabold tracking-tight">Reset your password</h2>
-        <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-          Enter your email address and we'll send you a recovery link
+        <Link to="/" className="inline-block mb-6 hover:opacity-90 transition-opacity">
+          <FormaLogo size="lg" withTagline={true} />
+        </Link>
+        <h2 className="font-serif text-3xl font-medium tracking-tight text-text-primary">
+          Reset your password
+        </h2>
+        <p className="mt-2 text-sm text-text-secondary">
+          Enter your registered email address and we'll send a secure recovery link
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white dark:bg-slate-900 py-8 px-4 shadow-xl sm:rounded-2xl sm:px-10 border border-slate-200 dark:border-slate-800">
+        <div className="bg-surface py-8 px-6 shadow-card sm:rounded-xl sm:px-10 border border-surface-border">
           {isSuccess ? (
-            <div className="text-center space-y-4">
-              <div className="mx-auto w-12 h-12 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center">
+            <div className="text-center space-y-4 py-4">
+              <div className="mx-auto w-12 h-12 bg-[#E8F0EB] dark:bg-[#315C4B]/30 text-[#315C4B] dark:text-[#88C4A6] rounded-full flex items-center justify-center">
                 <CheckCircle2 className="w-7 h-7" />
               </div>
-              <h3 className="text-xl font-bold">Password reset email sent</h3>
-              <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                If an account exists with <span className="font-semibold text-slate-900 dark:text-slate-200">{email}</span>, you will receive an email with instructions to reset your password.
+              <h3 className="font-serif text-2xl font-bold text-text-primary">Recovery email sent</h3>
+              <p className="text-sm text-text-secondary leading-relaxed">
+                If an account exists with <span className="font-semibold text-text-primary">{email}</span>, you will receive an email with instructions to reset your password.
               </p>
               <div className="pt-4">
                 <Link
                   to="/login"
-                  className="w-full inline-flex justify-center items-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 transition-colors"
+                  className="w-full inline-flex justify-center items-center py-2.5 px-4 rounded-lg text-sm font-semibold text-white bg-[#17263C] hover:bg-[#101B2B] dark:bg-[#F7F5F0] dark:text-[#101B2B] transition-all"
                 >
                   <ArrowLeft className="mr-2 w-4 h-4" />
                   Back to Sign In
@@ -67,9 +70,9 @@ export const ForgotPasswordPage: React.FC = () => {
           ) : (
             <>
               {errorMessage && (
-                <div className="mb-6 p-4 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-                  <div className="text-sm text-red-700 dark:text-red-300 font-medium">
+                <div className="mb-6 p-4 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+                  <div className="text-xs text-red-700 dark:text-red-300 font-medium leading-relaxed">
                     {errorMessage}
                   </div>
                 </div>
@@ -79,13 +82,13 @@ export const ForgotPasswordPage: React.FC = () => {
                 <div>
                   <label
                     htmlFor="email"
-                    className="block text-sm font-semibold text-slate-700 dark:text-slate-300"
+                    className="block text-xs font-semibold uppercase tracking-wider text-text-secondary mb-1.5"
                   >
                     Email Address
                   </label>
-                  <div className="mt-1 relative rounded-lg shadow-sm">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                      <Mail className="h-5 h-5" />
+                  <div className="relative rounded-lg shadow-2xs">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-text-muted">
+                      <Mail className="h-4 w-4" />
                     </div>
                     <input
                       id="email"
@@ -95,20 +98,20 @@ export const ForgotPasswordPage: React.FC = () => {
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm"
-                      placeholder="you@example.com"
+                      className="block w-full pl-10 pr-3.5 py-2.5 border border-surface-border rounded-lg bg-background text-text-primary placeholder-text-muted text-sm focus:outline-none focus:ring-2 focus:ring-[#17263C] dark:focus:ring-[#B79A65] transition-all"
+                      placeholder="name@company.com"
                     />
                   </div>
                 </div>
 
-                <div>
+                <div className="pt-2">
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full flex justify-center items-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 transition-colors"
+                    className="w-full flex justify-center items-center py-2.5 px-4 rounded-lg text-sm font-semibold text-white bg-[#17263C] hover:bg-[#101B2B] dark:bg-[#F7F5F0] dark:text-[#101B2B] dark:hover:bg-white shadow-card hover:shadow-elevated disabled:opacity-50 transition-all cursor-pointer"
                   >
                     {isSubmitting ? (
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <div className="w-5 h-5 border-2 border-white/60 dark:border-black/60 border-t-transparent rounded-full animate-spin" />
                     ) : (
                       <>
                         Send Recovery Link
@@ -119,12 +122,12 @@ export const ForgotPasswordPage: React.FC = () => {
                 </div>
               </form>
 
-              <div className="mt-6 border-t border-slate-200 dark:border-slate-800 pt-4 text-center">
+              <div className="mt-8 border-t border-surface-border pt-6 text-center">
                 <Link
                   to="/login"
-                  className="inline-flex items-center text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                  className="inline-flex items-center text-xs font-semibold text-[#315C4B] dark:text-[#88C4A6] hover:underline"
                 >
-                  <ArrowLeft className="mr-1.5 w-4 h-4" />
+                  <ArrowLeft className="mr-1.5 w-3.5 h-3.5" />
                   Back to Sign In
                 </Link>
               </div>

@@ -83,18 +83,18 @@ export const ResumesPage: React.FC = () => {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-text-primary flex items-center gap-2">
-            <Archive className="w-5 h-5 text-purple-400" />
-            Tailored Resume Library
-          </h2>
-          <p className="text-xs sm:text-sm text-text-secondary">
+          <h1 className="font-serif text-2xl sm:text-3xl font-bold tracking-tight text-text-primary flex items-center gap-2.5">
+            <Archive className="w-6 h-6 text-forma-emerald" />
+            <span>Tailored Resume Archive</span>
+          </h1>
+          <p className="text-xs sm:text-sm text-text-secondary mt-1">
             Manage tailored applications, inspect version snapshots, and download certified one-page PDF/DOCX files.
           </p>
         </div>
 
         <Link
           to="/builder"
-          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-brand-primary hover:bg-brand-hover text-white text-xs font-semibold transition-colors shadow-xs"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-forma bg-forma-navy hover:bg-forma-deep-navy dark:bg-forma-emerald dark:hover:bg-forma-emerald-hover text-white text-xs font-semibold transition-all shadow-subtle hover:shadow-card"
         >
           <Sparkles className="w-4 h-4" />
           <span>New Resume Draft</span>

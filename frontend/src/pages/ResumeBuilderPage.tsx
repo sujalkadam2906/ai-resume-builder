@@ -214,7 +214,7 @@ export const ResumeBuilderPage: React.FC = () => {
                   value={resumeTitle}
                   onChange={(e) => setResumeTitle(e.target.value)}
                   onBlur={() => saveMutation.mutate(editorManifest)}
-                  className="font-bold text-sm text-text-primary bg-transparent border-b border-dashed border-surface-border hover:border-brand-primary focus:border-brand-primary focus:outline-none max-w-xs sm:max-w-md truncate"
+                  className="font-serif font-bold text-base text-text-primary bg-transparent border-b border-dashed border-surface-border hover:border-forma-gold focus:border-forma-gold focus:outline-none max-w-xs sm:max-w-md truncate"
                 />
                 {isApproved ? (
                   <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">
@@ -387,12 +387,12 @@ export const ResumeBuilderPage: React.FC = () => {
     <div className="space-y-6 max-w-4xl mx-auto pb-16">
       {/* Wizard Header */}
       <div>
-        <h2 className="text-xl font-bold tracking-tight text-text-primary flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-brand-primary" />
-          Guided Resume Tailoring Wizard
-        </h2>
-        <p className="text-xs sm:text-sm text-text-secondary">
-          Step-by-step pipeline tailoring accomplishments, project evidence, and technical keywords against target job postings.
+        <h1 className="font-serif text-2xl sm:text-3xl font-bold tracking-tight text-text-primary flex items-center gap-2.5">
+          <Sparkles className="w-6 h-6 text-forma-gold" />
+          <span>Resume Tailoring Studio</span>
+        </h1>
+        <p className="text-xs sm:text-sm text-text-secondary mt-1">
+          Precision workflow tailoring accomplishments, project evidence, and technical keywords against target job postings.
         </p>
       </div>
 

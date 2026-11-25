@@ -114,18 +114,18 @@ export const JobDescriptionsPage: React.FC = () => {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-text-primary flex items-center gap-2">
-            <Briefcase className="w-5 h-5 text-emerald-400" />
-            Target Job Descriptions Workspace
-          </h2>
-          <p className="text-xs sm:text-sm text-text-secondary">
+          <h1 className="font-serif text-2xl sm:text-3xl font-bold tracking-tight text-text-primary flex items-center gap-2.5">
+            <Briefcase className="w-6 h-6 text-forma-emerald" />
+            <span>Target Job Descriptions</span>
+          </h1>
+          <p className="text-xs sm:text-sm text-text-secondary mt-1">
             Ingest target postings, extract structured requirement matrices, and calculate explainable project rankings.
           </p>
         </div>
 
         <button
           onClick={() => setIsAddModalOpen(true)}
-          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-brand-primary hover:bg-brand-hover text-white text-xs font-medium transition-colors shadow-xs"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-forma bg-forma-navy hover:bg-forma-deep-navy dark:bg-forma-emerald dark:hover:bg-forma-emerald-hover text-white text-xs font-semibold transition-all shadow-subtle hover:shadow-card"
         >
           <Plus className="w-4 h-4" />
           <span>Add Job Description</span>

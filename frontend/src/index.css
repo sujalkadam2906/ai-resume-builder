@@ -4,46 +4,53 @@
 
 @layer base {
   :root {
-    --bg-primary: #F8FAFC;
-    --bg-subtle: #F1F5F9;
+    --bg-primary: #F7F5F0;
+    --bg-subtle: #EFECE6;
     --surface-bg: #FFFFFF;
-    --surface-elevated: #F8FAFC;
-    --surface-border: #E2E8F0;
-    --text-primary: #0F172A;
-    --text-secondary: #475569;
-    --text-muted: #94A3B8;
+    --surface-elevated: #FDFBF7;
+    --surface-border: #E5E7EB;
+    --text-primary: #101B2B;
+    --text-secondary: #4A5568;
+    --text-muted: #687386;
 
-    --brand-primary: #2563EB;
-    --brand-hover: #1D4ED8;
-    --brand-secondary: #10B981;
+    --brand-primary: #17263C;
+    --brand-hover: #101B2B;
+    --brand-secondary: #315C4B;
+    --brand-gold: #B79A65;
   }
 
   .dark {
-    --bg-primary: #0B0F17;
-    --bg-subtle: #0F172A;
-    --surface-bg: #111827;
-    --surface-elevated: #1E293B;
-    --surface-border: #1F2937;
-    --text-primary: #F9FAFB;
-    --text-secondary: #9CA3AF;
-    --text-muted: #6B7280;
+    --bg-primary: #0D1522;
+    --bg-subtle: #121D2D;
+    --surface-bg: #152234;
+    --surface-elevated: #1B2B42;
+    --surface-border: #22344D;
+    --text-primary: #F7F5F0;
+    --text-secondary: #9DA8B8;
+    --text-muted: #687A90;
 
-    --brand-primary: #3B82F6;
-    --brand-hover: #2563EB;
-    --brand-secondary: #10B981;
+    --brand-primary: #386A56;
+    --brand-hover: #45826A;
+    --brand-secondary: #315C4B;
+    --brand-gold: #C4A977;
   }
 }
 
 body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   margin: 0;
   padding: 0;
   min-height: 100vh;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Editorial headline utility */
+.font-editorial {
+  font-family: 'Newsreader', 'Playfair Display', Georgia, serif;
 }
 
 /* Custom subtle scrollbars */
@@ -53,12 +60,12 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-primary);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
   background: var(--surface-border);
-  border-radius: 3px;
+  border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {

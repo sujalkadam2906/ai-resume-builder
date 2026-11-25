@@ -72,11 +72,11 @@ export const AtsAnalysisPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-text-primary flex items-center gap-2">
-            <Target className="w-5 h-5 text-amber-400" />
-            ATS Heuristic Diagnostic Engine
-          </h2>
-          <p className="text-xs sm:text-sm text-text-secondary">
+          <h1 className="font-serif text-2xl sm:text-3xl font-bold tracking-tight text-text-primary flex items-center gap-2.5">
+            <Target className="w-6 h-6 text-forma-gold" />
+            <span>ATS Diagnostic Engine</span>
+          </h1>
+          <p className="text-xs sm:text-sm text-text-secondary mt-1">
             Deterministic evaluation of text parsing, keyword alignment (50%), format compliance (30%), and content quality (20%).
           </p>
         </div>
@@ -85,19 +85,19 @@ export const AtsAnalysisPage: React.FC = () => {
           <div className="flex items-center gap-2">
             <Link
               to={`/builder?resume_id=${currentResumeId}`}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-surface-elevated hover:bg-surface-border text-xs text-text-primary font-medium border border-surface-border transition-colors shadow-2xs"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-forma bg-surface-elevated hover:bg-surface-border text-xs text-text-primary font-medium border border-surface-border transition-colors shadow-2xs"
             >
-              <Edit3 className="w-3.5 h-3.5 text-brand-primary" />
+              <Edit3 className="w-3.5 h-3.5 text-forma-emerald" />
               <span>Edit in Builder</span>
             </Link>
 
             <button
               onClick={() => evaluateMutation.mutate(currentResumeId)}
               disabled={evaluateMutation.isPending}
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-brand-primary hover:bg-brand-hover text-white text-xs font-semibold transition-colors shadow-xs disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-forma bg-forma-navy hover:bg-forma-deep-navy dark:bg-forma-emerald dark:hover:bg-forma-emerald-hover text-white text-xs font-semibold transition-all shadow-subtle disabled:opacity-50"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${evaluateMutation.isPending ? "animate-spin" : ""}`} />
-              <span>{evaluateMutation.isPending ? "Analyzing Keyword Density..." : "Run ATS Diagnostic"}</span>
+              <span>{evaluateMutation.isPending ? "Analyzing Keywords..." : "Run ATS Diagnostic"}</span>
             </button>
           </div>
         )}
