@@ -278,20 +278,22 @@ class SupabaseAuthValidator:
                 detail="Email verification required. Please check your inbox and verify your email before accessing this platform.",
             )
 
-        # 6. Authorization: Check allowed emails whitelist if configured
-        # When ALLOWED_EMAILS is populated, only those emails are permitted.
-        # When ALLOWED_EMAILS is empty AND ALLOW_PUBLIC_SIGNUP is False,
-        # no one is authorized (fail-closed).
-        # When ALLOWED_EMAILS is empty AND ALLOW_PUBLIC_SIGNUP is True,
-        # all verified users are permitted.
-        if settings.allowed_emails:
+        # 6. Authorization: Check platform access mode
+        # In Public SaaS mode (allow_public_signup=True), any authenticated,
+        # email-verified user is authorized to use the application.
+        # In Private Beta mode (allow_public_signup=False), access is strictly
+        # restricted to the configured ALLOWED_EMAILS list.
+        if settings.allow_public_signup:
+            # Public SaaS mode: all verified users have access
+            pass
+        elif settings.allowed_emails:
             if email.lower() not in settings.allowed_emails:
                 logger.warning(f"Access denied for authenticated user '{email}': not in ALLOWED_EMAILS.")
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail=f"User '{email}' is authenticated but not authorized to access this platform.",
                 )
-        elif not settings.allow_public_signup:
+        else:
             # No whitelist AND signup not enabled = fail-closed
             logger.warning(f"Access denied for '{email}': ALLOWED_EMAILS empty and ALLOW_PUBLIC_SIGNUP=false.")
             raise HTTPException(

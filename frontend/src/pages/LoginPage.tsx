@@ -144,7 +144,7 @@ export const LoginPage: React.FC = () => {
             </div>
           </form>
 
-          {import.meta.env.VITE_ALLOW_PUBLIC_SIGNUP === "true" && (
+          {import.meta.env.VITE_ALLOW_PUBLIC_SIGNUP !== "false" && (
             <div className="mt-6 border-t border-slate-200 dark:border-slate-800 pt-4 text-center">
               <p className="text-sm text-slate-600 dark:text-slate-400">
                 Don't have an account?{" "}

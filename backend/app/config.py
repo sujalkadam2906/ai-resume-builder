@@ -54,10 +54,9 @@ class WebSettings:
         raw_allowed = os.getenv("ALLOWED_EMAILS", "")
         self.allowed_emails: List[str] = [e.strip().lower() for e in raw_allowed.split(",") if e.strip()]
 
-        # Signup control: when False (default), new account creation via Supabase
-        # is blocked at the backend by ALLOWED_EMAILS enforcement.
-        # Set to True only after explicitly approving public registration.
-        self.allow_public_signup: bool = os.getenv("ALLOW_PUBLIC_SIGNUP", "false").lower() in ("true", "1", "yes")
+        # Signup control: defaults to True for public SaaS mode.
+        # Set ALLOW_PUBLIC_SIGNUP=false to restrict access to ALLOWED_EMAILS during private beta.
+        self.allow_public_signup: bool = os.getenv("ALLOW_PUBLIC_SIGNUP", "true").lower() in ("true", "1", "yes")
 
         # Rate Limiting
         self.rate_limit_generation_per_minute: int = int(os.getenv("RATE_LIMIT_GENERATION_PER_MINUTE", "10"))

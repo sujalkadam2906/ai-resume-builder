@@ -7,7 +7,7 @@ import { Lock, Mail, User, ArrowRight, AlertCircle, CheckCircle2, ShieldCheck } 
 export const SignUpPage: React.FC = () => {
   const { session, loading } = useAuth();
   const navigate = useNavigate();
-  const isPublicSignupEnabled = import.meta.env.VITE_ALLOW_PUBLIC_SIGNUP === "true";
+  const isPublicSignupEnabled = import.meta.env.VITE_ALLOW_PUBLIC_SIGNUP !== "false";
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -51,13 +51,19 @@ export const SignUpPage: React.FC = () => {
     e.preventDefault();
     setErrorMessage(null);
 
-    if (password !== confirmPassword) {
-      setErrorMessage("Passwords do not match.");
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !trimmedEmail.includes("@")) {
+      setErrorMessage("Please enter a valid email address.");
       return;
     }
 
-    if (password.length < 6) {
-      setErrorMessage("Password must be at least 6 characters long.");
+    if (password.length < 8) {
+      setErrorMessage("Password must be at least 8 characters long.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setErrorMessage("Passwords do not match.");
       return;
     }
 
@@ -65,7 +71,7 @@ export const SignUpPage: React.FC = () => {
 
     try {
       const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
+        email: trimmedEmail,
         password,
         options: {
           data: {
@@ -76,7 +82,16 @@ export const SignUpPage: React.FC = () => {
       });
 
       if (error) {
-        setErrorMessage(error.message);
+        if (
+          error.message.toLowerCase().includes("already registered") ||
+          error.message.toLowerCase().includes("already exists")
+        ) {
+          setErrorMessage("An account with this email already exists. Please sign in or use password recovery.");
+        } else if (error.message.toLowerCase().includes("signups not allowed")) {
+          setErrorMessage("Public registrations are currently being enabled on Supabase. Please enable 'Allow new users to sign up' in the Supabase Dashboard (Authentication -> Providers -> Email).");
+        } else {
+          setErrorMessage(error.message);
+        }
       } else if (data.session) {
         // Direct login without email confirmation
         navigate("/", { replace: true });

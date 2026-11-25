@@ -197,6 +197,8 @@ def test_supabase_reject_unauthorized_email():
     validator.set_cached_keys([jwk])
 
     orig_allowed = settings.allowed_emails
+    orig_signup = settings.allow_public_signup
+    settings.allow_public_signup = False
     settings.allowed_emails = ["authorized@example.com"]
     try:
         payload = {
@@ -213,6 +215,36 @@ def test_supabase_reject_unauthorized_email():
         assert "not authorized" in str(exc_info.value).lower() or "403" in str(exc_info.value)
     finally:
         settings.allowed_emails = orig_allowed
+        settings.allow_public_signup = orig_signup
+
+
+def test_supabase_public_signup_permits_ordinary_users():
+    """Verify that in Public SaaS mode (allow_public_signup=True), ordinary registered users are permitted."""
+    priv_key, jwk, kid = generate_test_rsa_keys()
+    supabase_url = "https://xyzcompany.supabase.co"
+    validator = SupabaseAuthValidator(supabase_url=supabase_url, expected_aud="authenticated")
+    validator.set_cached_keys([jwk])
+
+    orig_allowed = settings.allowed_emails
+    orig_signup = settings.allow_public_signup
+    settings.allow_public_signup = True
+    settings.allowed_emails = ["operator@example.com"]  # Operator allowlist should not block registered public users
+    try:
+        payload = {
+            "sub": str(uuid.uuid4()),
+            "email": "ordinary_new_user@example.com",
+            "email_confirmed_at": "2024-01-01T00:00:00Z",
+            "aud": "authenticated",
+            "iss": f"{supabase_url}/auth/v1",
+            "exp": int(time.time()) + 3600,
+        }
+        token = jwt.encode(payload, priv_key, algorithm="RS256", headers={"kid": kid})
+        user = validator.verify_jwt(token)
+        assert user.email == "ordinary_new_user@example.com"
+        assert user.is_authenticated is True
+    finally:
+        settings.allowed_emails = orig_allowed
+        settings.allow_public_signup = orig_signup
 
 
 def test_supabase_reject_naked_headers():
