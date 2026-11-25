@@ -20,6 +20,7 @@ import {
   Sparkles,
   Shield,
   Save,
+  Copy,
   X,
 } from "lucide-react";
 import { profilesApi } from "@/services/api";
@@ -79,7 +80,16 @@ export const ProfilesPage: React.FC = () => {
   const profiles = profilesData?.items || [];
   const selectedSlug = profiles.some((p) => p.slug === activeProfileSlug)
     ? activeProfileSlug
-    : profiles[0]?.slug || "sujal";
+    : profiles.find((p) => !p.is_synthetic)?.slug || profiles[0]?.slug || "demo_candidate";
+
+  const cloneProfileMutation = useMutation({
+    mutationFn: (slug: string) => profilesApi.clone(slug),
+    onSuccess: (newProfile) => {
+      queryClient.invalidateQueries({ queryKey: ["profiles-list"] });
+      setActiveProfileSlug(newProfile.slug);
+    },
+    onError: (err: any) => alert(err.message),
+  });
 
   // 2. Fetch full detail of the selected candidate
   const {
@@ -347,16 +357,27 @@ export const ProfilesPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Archive / Restore Button */}
+            {/* Template Actions / Archive Button */}
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => toggleArchiveMutation.mutate()}
-                disabled={toggleArchiveMutation.isPending}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-surface-border bg-surface-elevated hover:bg-surface-border text-xs text-text-secondary font-medium transition-colors"
-              >
-                <Archive className="w-3.5 h-3.5" />
-                <span>{profileDetail.is_archived ? "Restore Profile" : "Archive Profile"}</span>
-              </button>
+              {profileDetail.is_synthetic ? (
+                <button
+                  onClick={() => cloneProfileMutation.mutate(profileDetail.slug)}
+                  disabled={cloneProfileMutation.isPending}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 text-xs text-purple-300 font-medium transition-colors shadow-xs"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>{cloneProfileMutation.isPending ? "Cloning..." : "Clone Template to My Workspace"}</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => toggleArchiveMutation.mutate()}
+                  disabled={toggleArchiveMutation.isPending}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-surface-border bg-surface-elevated hover:bg-surface-border text-xs text-text-secondary font-medium transition-colors"
+                >
+                  <Archive className="w-3.5 h-3.5" />
+                  <span>{profileDetail.is_archived ? "Restore Profile" : "Archive Profile"}</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -1085,7 +1106,7 @@ const NewProfileModal: React.FC<NewProfileModalProps> = ({
             <input
               required
               pattern="^[a-z0-9_-]+$"
-              placeholder="e.g. sujal_kadam"
+              placeholder="e.g. jane_doe"
               value={slug}
               onChange={(e) => setSlug(e.target.value)}
               className="w-full bg-surface-elevated border border-surface-border rounded-lg px-3 py-2 text-text-primary focus:outline-none focus:border-brand-primary font-mono"

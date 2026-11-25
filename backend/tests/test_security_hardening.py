@@ -70,6 +70,7 @@ def test_supabase_valid_rsa_jwt():
     payload = {
         "sub": "00000000-0000-0000-0000-000000000001",
         "email": "candidate@example.com",
+        "email_confirmed_at": "2024-01-01T00:00:00Z",
         "user_metadata": {"full_name": "Test Candidate"},
         "aud": aud,
         "iss": f"{supabase_url}/auth/v1",
@@ -78,11 +79,16 @@ def test_supabase_valid_rsa_jwt():
     }
     token = jwt.encode(payload, priv_key, algorithm="RS256", headers={"kid": kid})
 
-    user = validator.verify_jwt(token)
-    assert user.is_authenticated is True
-    assert user.email == "candidate@example.com"
-    assert user.user_id == "00000000-0000-0000-0000-000000000001"
-    assert user.name == "Test Candidate"
+    orig_signup = settings.allow_public_signup
+    settings.allow_public_signup = True
+    try:
+        user = validator.verify_jwt(token)
+        assert user.is_authenticated is True
+        assert user.email == "candidate@example.com"
+        assert user.user_id == "00000000-0000-0000-0000-000000000001"
+        assert user.name == "Test Candidate"
+    finally:
+        settings.allow_public_signup = orig_signup
 
 
 def test_supabase_valid_ec_jwt():
@@ -97,6 +103,7 @@ def test_supabase_valid_ec_jwt():
     payload = {
         "sub": "00000000-0000-0000-0000-000000000002",
         "email": "ecuser@example.com",
+        "email_confirmed_at": "2024-01-01T00:00:00Z",
         "aud": aud,
         "iss": f"{supabase_url}/auth/v1",
         "iat": int(time.time()),
@@ -104,10 +111,15 @@ def test_supabase_valid_ec_jwt():
     }
     token = jwt.encode(payload, priv_key, algorithm="ES256", headers={"kid": kid})
 
-    user = validator.verify_jwt(token)
-    assert user.is_authenticated is True
-    assert user.email == "ecuser@example.com"
-    assert user.user_id == "00000000-0000-0000-0000-000000000002"
+    orig_signup = settings.allow_public_signup
+    settings.allow_public_signup = True
+    try:
+        user = validator.verify_jwt(token)
+        assert user.is_authenticated is True
+        assert user.email == "ecuser@example.com"
+        assert user.user_id == "00000000-0000-0000-0000-000000000002"
+    finally:
+        settings.allow_public_signup = orig_signup
 
 
 def test_supabase_reject_forged_signature():
@@ -190,6 +202,7 @@ def test_supabase_reject_unauthorized_email():
         payload = {
             "sub": "user_unauthorized",
             "email": "unauthorized@example.com",
+            "email_confirmed_at": "2024-01-01T00:00:00Z",
             "aud": "authenticated",
             "iss": f"{supabase_url}/auth/v1",
             "exp": int(time.time()) + 3600,
@@ -221,8 +234,11 @@ def test_supabase_reject_naked_headers():
 # 2. Production Fail-Closed Behavior
 # ------------------------------------------------------------------------------
 
-def test_production_fail_closed_on_unauthenticated():
+def test_production_fail_closed_on_unauthenticated(monkeypatch):
     """Verify that when APP_ENV=production, requests fail closed without valid Bearer JWT."""
+    import backend.app.api.v1.endpoints.health as health_mod
+    monkeypatch.setattr(health_mod, "check_db_connection", lambda: (False, "Database connection timed out"))
+
     orig_env = settings.environment
     settings.environment = "production"
     try:
@@ -230,8 +246,14 @@ def test_production_fail_closed_on_unauthenticated():
         r_health = client.get("/api/v1/health")
         assert r_health.status_code == 200
 
+        # Readiness probe returns 503 when DB is unreachable (mocked to prevent network hang)
         r_ready = client.get("/api/v1/health/ready")
-        assert r_ready.status_code == 200
+        assert r_ready.status_code == 503
+        body = r_ready.json()
+        assert "checks" in body
+        # Ensure no sensitive data (connection strings) is leaked
+        assert "database_url" not in str(body).lower()
+        assert "@" not in str(body.get("checks", {}).get("database", {}))
 
         # Protected endpoints strictly reject unauthenticated requests
         r_profiles = client.get("/api/v1/profiles")
@@ -303,3 +325,232 @@ def test_storage_path_traversal_sanitization():
     storage_root = str(settings.storage_path.resolve())
     assert str(export_dir).startswith(storage_root)
     assert ".." not in str(export_dir)
+
+
+# ------------------------------------------------------------------------------
+# 6. Email Verification, Signup Controls, Health Separation & Input Bounds
+# ------------------------------------------------------------------------------
+
+def test_supabase_standard_jwt_without_email_confirmed_claim():
+    """Standard Supabase access tokens omit email_confirmed_at; verify_jwt accepts them when authorized."""
+    priv_key, jwk, kid = generate_test_rsa_keys()
+    supabase_url = "https://xyzcompany.supabase.co"
+    validator = SupabaseAuthValidator(supabase_url=supabase_url, expected_aud="authenticated")
+    validator.set_cached_keys([jwk])
+
+    orig_allowed = settings.allowed_emails
+    settings.allowed_emails = ["verified@example.com"]
+    try:
+        payload = {
+            "sub": str(uuid.uuid4()),
+            "email": "verified@example.com",
+            "aud": "authenticated",
+            "iss": f"{supabase_url}/auth/v1",
+            "iat": int(time.time()),
+            "exp": int(time.time()) + 3600,
+        }
+        token = jwt.encode(payload, priv_key, algorithm="RS256", headers={"kid": kid})
+        user = validator.verify_jwt(token)
+        assert user.email == "verified@example.com"
+    finally:
+        settings.allowed_emails = orig_allowed
+
+
+def test_supabase_reject_unverified_claims_in_jwt():
+    """Explicitly unverified claims (email_verified=False or email_confirmed_at=None) are rejected with 403."""
+    from fastapi import HTTPException
+
+    priv_key, jwk, kid = generate_test_rsa_keys()
+    supabase_url = "https://xyzcompany.supabase.co"
+    validator = SupabaseAuthValidator(supabase_url=supabase_url, expected_aud="authenticated")
+    validator.set_cached_keys([jwk])
+
+    orig_allowed = settings.allowed_emails
+    settings.allowed_emails = ["user@example.com"]
+    try:
+        for extra_claim in [{"email_verified": False}, {"email_confirmed_at": None}]:
+            payload = {
+                "sub": str(uuid.uuid4()),
+                "email": "user@example.com",
+                "aud": "authenticated",
+                "iss": f"{supabase_url}/auth/v1",
+                "exp": int(time.time()) + 3600,
+                **extra_claim,
+            }
+            token = jwt.encode(payload, priv_key, algorithm="RS256", headers={"kid": kid})
+            with pytest.raises(HTTPException) as exc_info:
+                validator.verify_jwt(token)
+            assert exc_info.value.status_code == 403
+    finally:
+        settings.allowed_emails = orig_allowed
+
+
+def test_db_email_verification_enforcement_on_postgresql():
+    """_verify_email_confirmed_in_db rejects unconfirmed users on PostgreSQL and allows confirmed users."""
+    from fastapi import HTTPException
+    from backend.app.core.auth import AuthenticatedUser, _verify_email_confirmed_in_db
+
+    user = AuthenticatedUser(
+        email="user@example.com",
+        user_id=str(uuid.uuid4()),
+        claims={"sub": "x", "email": "user@example.com"},
+    )
+
+    class FakeDialect:
+        name = "postgresql"
+
+    class FakeBind:
+        dialect = FakeDialect()
+
+    class FakeResult:
+        def __init__(self, row):
+            self._row = row
+
+        def fetchone(self):
+            return self._row
+
+    class FakeSession:
+        def __init__(self, row):
+            self._row = row
+
+        def get_bind(self):
+            return FakeBind()
+
+        def execute(self, *_args, **_kwargs):
+            return FakeResult(self._row)
+
+    # Unconfirmed (email_confirmed_at is None) -> 403
+    with pytest.raises(HTTPException) as exc_info:
+        _verify_email_confirmed_in_db(FakeSession((None,)), user)
+    assert exc_info.value.status_code == 403
+
+    # Missing auth.users row -> 403
+    with pytest.raises(HTTPException) as exc_info:
+        _verify_email_confirmed_in_db(FakeSession(None), user)
+    assert exc_info.value.status_code == 403
+
+    # Database query error -> fails closed with 403
+    class ErrorSession(FakeSession):
+        def execute(self, *_args, **_kwargs):
+            raise RuntimeError("Database connection lost")
+
+    with pytest.raises(HTTPException) as exc_info:
+        _verify_email_confirmed_in_db(ErrorSession(None), user)
+    assert exc_info.value.status_code == 403
+    assert "Unable to verify" in exc_info.value.detail
+
+    # Confirmed -> passes
+    _verify_email_confirmed_in_db(FakeSession(("2026-01-01T00:00:00Z",)), user)
+
+
+def test_allowed_emails_matrix_comprehensive():
+    """Explicitly verify the 5 ALLOWED_EMAILS & REQUIRE_AUTH configurations requested."""
+    from fastapi import HTTPException
+    from backend.app.config import WebSettings
+
+    priv_key, jwk, kid = generate_test_rsa_keys()
+    supabase_url = "https://xyzcompany.supabase.co"
+    validator = SupabaseAuthValidator(supabase_url=supabase_url, expected_aud="authenticated")
+    validator.set_cached_keys([jwk])
+
+    def create_token(email: str) -> str:
+        payload = {
+            "sub": str(uuid.uuid4()),
+            "email": email,
+            "email_confirmed_at": "2026-01-01T00:00:00Z",
+            "aud": "authenticated",
+            "iss": f"{supabase_url}/auth/v1",
+            "exp": int(time.time()) + 3600,
+        }
+        return jwt.encode(payload, priv_key, algorithm="RS256", headers={"kid": kid})
+
+    orig_allowed = settings.allowed_emails
+    orig_signup = settings.allow_public_signup
+    orig_require_auth = settings.require_auth
+    orig_env = settings.environment
+    try:
+        operator_token = create_token("operator@example.com")
+        stranger_token = create_token("stranger@example.com")
+
+        # 1. REQUIRE_AUTH=true, ALLOW_PUBLIC_SIGNUP=false, ALLOWED_EMAILS contains operator -> operator permitted
+        settings.require_auth = True
+        settings.allow_public_signup = False
+        settings.allowed_emails = ["operator@example.com"]
+        op_user = validator.verify_jwt(operator_token)
+        assert op_user.email == "operator@example.com"
+
+        # 2. REQUIRE_AUTH=true, ALLOW_PUBLIC_SIGNUP=false, ALLOWED_EMAILS empty -> fail closed (403)
+        settings.allowed_emails = []
+        with pytest.raises(HTTPException) as exc_2:
+            validator.verify_jwt(operator_token)
+        assert exc_2.value.status_code == 403
+        assert "restricted" in exc_2.value.detail.lower()
+
+        # 3. REQUIRE_AUTH=true, ALLOW_PUBLIC_SIGNUP=false, unlisted user -> denied (403)
+        settings.allowed_emails = ["operator@example.com"]
+        with pytest.raises(HTTPException) as exc_3:
+            validator.verify_jwt(stranger_token)
+        assert exc_3.value.status_code == 403
+        assert "not authorized" in exc_3.value.detail.lower()
+
+        # 4. ALLOW_PUBLIC_SIGNUP=true -> opens backend auth to all verified identities
+        settings.allowed_emails = []
+        settings.allow_public_signup = True
+        public_user = validator.verify_jwt(stranger_token)
+        assert public_user.email == "stranger@example.com"
+
+        # 5. REQUIRE_AUTH=false cannot bypass production: in production environment, settings forces require_auth=True
+        prod_settings = WebSettings()
+        prod_settings.environment = "production"
+        # Simulate environment instantiation
+        assert prod_settings.is_production is True
+        # Calling __init__ with production environment
+        import os
+        orig_os_env = os.environ.get("APP_ENV")
+        orig_os_auth = os.environ.get("REQUIRE_AUTH")
+        try:
+            os.environ["APP_ENV"] = "production"
+            os.environ["REQUIRE_AUTH"] = "false"  # Attacker tries to disable in prod
+            test_prod = WebSettings()
+            assert test_prod.require_auth is True  # Forced true
+            assert test_prod.allow_dev_auth_bypass is False  # Forced false
+        finally:
+            if orig_os_env: os.environ["APP_ENV"] = orig_os_env
+            else: os.environ.pop("APP_ENV", None)
+            if orig_os_auth: os.environ["REQUIRE_AUTH"] = orig_os_auth
+            else: os.environ.pop("REQUIRE_AUTH", None)
+    finally:
+        settings.allowed_emails = orig_allowed
+        settings.allow_public_signup = orig_signup
+        settings.require_auth = orig_require_auth
+        settings.environment = orig_env
+
+
+def test_health_liveness_and_readiness_separation(monkeypatch):
+    """Liveness stays 200 when DB is down; readiness returns 503 when DB is down and 200 when healthy."""
+    import backend.app.api.v1.endpoints.health as health_mod
+
+    monkeypatch.setattr(health_mod, "check_db_connection", lambda: (False, "DB down"))
+    r_live = client.get("/api/v1/health")
+    assert r_live.status_code == 200
+    assert r_live.json()["status"] == "healthy"
+
+    r_ready_down = client.get("/api/v1/health/ready")
+    assert r_ready_down.status_code == 503
+    assert r_ready_down.json()["status"] == "degraded"
+    assert r_ready_down.json()["checks"]["database"]["status"] == "error"
+
+    monkeypatch.setattr(health_mod, "check_db_connection", lambda: (True, "Connected"))
+    r_ready_up = client.get("/api/v1/health/ready")
+    assert r_ready_up.status_code == 200
+    assert r_ready_up.json()["status"] == "ready"
+    assert r_ready_up.json()["checks"]["database"]["status"] == "ok"
+
+
+def test_jd_input_size_limit():
+    """Verify JobDescriptionCreate rejects oversized raw_text payloads."""
+    from pydantic import ValidationError
+    from backend.app.schemas.resume import JobDescriptionCreate
+
+    with pytest.raises(ValidationError):
+        JobDescriptionCreate(raw_text="x" * 50001)

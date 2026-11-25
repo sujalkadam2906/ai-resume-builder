@@ -1,94 +1,65 @@
 # Security Architecture & Production Deployment Manual
 
-**Product:** AI-Powered Resume Builder & Candidate Platform  
-**Target Standard:** OWASP Top 10 API Security & Zero-Trust Architecture  
-**Release Version:** 1.0.0  
+**Product:** AI-Powered Resume Builder & Candidate Platform
+**Target Standard:** OWASP Top 10 API Security & Multi-Tenant Isolation
+**Deployment Stack:** Vercel (Frontend) + Render (FastAPI Backend) + Supabase (PostgreSQL + Auth)
 
 ---
 
-## 1. Zero-Trust Cloudflare Access Authentication
+## 1. Supabase JWT Authentication & Multi-Tenant Isolation
 
-The platform implements independent cryptographic authentication on the backend entry point:
-
-### Authentication Workflow:
-1. External user accesses `resume.yourdomain.com`.
-2. Cloudflare Zero Trust evaluates access policies (Identity Provider SSO / One-Time Email PIN).
-3. Cloudflare signs the request and injects the header `Cf-Access-Jwt-Assertion`.
-4. The FastAPI backend (`backend/app/core/auth.py`) intercepts the request:
-   - Fetches public keys from `https://{team_name}.cloudflareaccess.com/cdn-cgi/access/certs`.
-   - Parses RSA keys using `jwt.algorithms.RSAAlgorithm`.
-   - Cryptographically verifies the `RS256` signature.
-   - Validates mandatory claims: `aud` (Audience), `iss` (Issuer), `exp` (Expiration), `sub` (User ID).
-   - Validates user email against the configured `ALLOWED_EMAILS` whitelist.
-5. Naked or unverified headers (e.g. `Cf-Access-Authenticated-User-Email` without a signed JWT) are strictly rejected with HTTP 401 Unauthorized.
-6. When `APP_ENV=production`, all protected endpoints fail closed if the JWT is missing or invalid.
+### Authentication Workflow
+1. User authenticates on the React SPA via Supabase Auth (`signInWithPassword`, email confirmation, password recovery).
+2. Frontend attaches `Authorization: Bearer <access_token>` to all `/api/v1/*` requests.
+3. FastAPI backend (`backend/app/core/auth.py`) validates every protected request:
+   - Fetches public keys from `{SUPABASE_URL}/auth/v1/.well-known/jwks.json`.
+   - Verifies asymmetric signature (`RS256`, `ES256`, `EdDSA`) and mandatory claims (`aud`, `iss`, `exp`, `sub`, `email`).
+   - Enforces email verification: rejects explicit unverified JWT claims (`email_verified: false` / `email_confirmed_at: null`) and verifies `auth.users.email_confirmed_at IS NOT NULL` on PostgreSQL when absent from standard Supabase JWTs.
+   - Enforces `ALLOWED_EMAILS` and `ALLOW_PUBLIC_SIGNUP` (fails closed with `HTTP 403` if `ALLOWED_EMAILS` is empty and `ALLOW_PUBLIC_SIGNUP=false`).
+4. Naked identity headers without a signed JWT are strictly rejected with `HTTP 401`.
+5. Ownership is derived solely from verified JWT `sub` (`current_user.user_uuid`); client-supplied `user_id` values are ignored.
 
 ---
 
 ## 2. API & Application Security Hardening
 
-### OWASP Security Headers (`backend/app/core/middleware.py`):
-Every HTTP response includes:
-- `X-Content-Type-Options: nosniff` (Prevents MIME sniffing attacks)
-- `X-Frame-Options: DENY` (Blocks framing and clickjacking)
-- `Referrer-Policy: strict-origin-when-cross-origin`
-- `Permissions-Policy: accelerometer=(), camera=(), geolocation=(), ...`
-- `Content-Security-Policy: default-src 'self'; frame-ancestors 'none';`
-- `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload` (HSTS active in production)
+### OWASP Security Headers (`backend/app/core/middleware.py`)
+Every HTTP response includes `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`, `Content-Security-Policy`, and `Strict-Transport-Security` (when `APP_ENV=production`).
 
-### Sliding-Window Rate Limiting (`backend/app/core/rate_limiter.py`):
-Prevents Denial-of-Service and AI quota exhaustion on compute-heavy routes:
-- Resume Generation (`/resumes/generate`): Max 10 requests / minute
-- JD Analysis (`/job-descriptions/{id}/analyze`): Max 15 requests / minute
-- Document Exports (`/export/pdf`, `/export/docx`): Max 20 requests / minute
-- Exceeding limit returns `HTTP 429 Too Many Requests` with `Retry-After` header.
+### Sliding-Window Rate Limiting (`backend/app/core/rate_limiter.py`)
+Process-local sliding-window rate limits keyed by `user:{user_id}` and fallback `ip:{client_ip}`:
+- Resume Generation (`POST /api/v1/resumes/generate`): `10` req/min per user (`20` req/min per IP)
+- JD Analysis (`POST /api/v1/job-descriptions/{jd_id}/analyze`): `15` req/min per user (`30` req/min per IP)
+- ATS Evaluation (`POST /api/v1/resumes/{resume_id}/evaluate`): `15` req/min per user (`30` req/min per IP)
+- Document Exports (`GET /api/v1/resumes/{resume_id}/export/pdf|docx`): `20` req/min per user (`40` req/min per IP)
+- AI Provider Status (`GET /api/v1/system/providers`): `10` req/min per user (`20` req/min per IP)
 
-### File Storage Traversal Defense (`backend/app/services/resume_export_service.py`):
-- Candidate slug parameters are sanitized with regex `re.sub(r"[^a-zA-Z0-9_\-]", "", slug)`.
-- Storage directory paths are verified against `settings.storage_path.resolve()`, preventing directory traversal attacks (`../`).
+> [!NOTE]
+> **Process-Local Limitation:** The rate limiter stores counters in process memory. Limits reset on backend restarts and are not shared across multiple Render worker instances. A shared store (e.g., Redis) is recommended before scaling to multiple workers or opening public signup.
+
+### Input-Size & Path Traversal Protections
+- `JobDescriptionBase.raw_text` and `JobDescriptionUpdate.raw_text` are bounded to `max_length=50000` characters (`min_length=20`).
+- Export directory paths sanitize candidate slugs and verify containment within `settings.storage_path.resolve()`.
 
 ---
 
-## 3. Database Security & Backup Operations
+## 3. Supabase Free Plan Backup & Recovery
 
-### Network Isolation:
-In production, the PostgreSQL 16 container communicates over an internal Docker network and is not exposed to the public Internet.
-
-### Automated Backups (`scripts/backup_db.py`):
-Execute a manual backup:
-```bash
-python scripts/backup_db.py
-```
-This utility:
-- Executes `pg_dump` securely from the container.
-- Computes a cryptographic SHA256 checksum.
-- Records backup metadata and file size in `backups/`.
-
-### Disaster Recovery & Restoration:
-```bash
-cat backups/resume_builder_backup_<timestamp>.sql | docker exec -i resume_builder_db psql -U postgres -d resume_builder
-```
+- **No Automatic Backups on Free Plan:** Supabase Free does **not** provide automated daily backups or PITR.
+- **Manual Logical Export:** Use `supabase db dump --db-url "$SUPABASE_DB_URL" -f backups/supabase_prod_YYYYMMDD.sql` (or `pg_dump --format=plain --no-owner --no-privileges`) before any migration.
+- **Database vs. Storage:** SQL dumps cover PostgreSQL tables only; Supabase Storage bucket objects (if used) must be backed up separately.
+- **Verification:** Always test-restore dumps into a disposable local PostgreSQL instance (`psql -d restore_verify -f ...`) before relying on them.
 
 ---
 
-## 4. Production Deployment Steps
+## 4. Production Deployment Order
 
-1. **Provision Linux Server:** Ubuntu 22.04 LTS (2 vCPU, 2-4 GB RAM).
-2. **Install Docker & Docker Compose:** Official Docker Engine packages.
-3. **Configure Environment:** Copy `docs/PRODUCTION_ENV_TEMPLATE.md` to `.env` on server and chmod 600.
-4. **Deploy Cloudflare Tunnel:** Install `cloudflared` to expose backend port 8000 without opening inbound firewall ports.
-5. **Run Database Migrations:**
-   ```bash
-   docker compose run --rm backend alembic upgrade head
-   ```
-6. **Build Frontend Assets:**
-   ```bash
-   npm --prefix frontend run build
-   ```
-7. **Start Backend Container:**
-   ```bash
-   docker compose up -d backend
-   ```
-8. **Verify Probes:**
-   - Liveness: `curl http://localhost:8000/api/v1/health`
-   - Readiness: `curl http://localhost:8000/api/v1/health/ready`
+1. Verify a real production Supabase backup/export and recovery plan.
+2. Review exact migration SQL (`alembic upgrade 7a8f9c0d1e2b --sql`).
+3. Apply the ownership migration to production Supabase (`alembic upgrade head`).
+4. Verify migration revision, ownership backfill, private `sujal` profile, `demo_candidate` template, and related record integrity.
+5. Deploy backend on Render (`/api/v1/health` for liveness probe).
+6. Test API auth and two-user tenant isolation.
+7. Deploy frontend on Vercel (`VITE_ALLOW_PUBLIC_SIGNUP=false`).
+8. Test signup, email confirmation, login, logout, recovery, and resume workflow.
+9. Only then decide whether public signup can be opened.

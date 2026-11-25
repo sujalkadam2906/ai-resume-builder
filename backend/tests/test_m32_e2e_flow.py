@@ -16,11 +16,49 @@ Tests:
 """
 
 import sys
+import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
+
+from backend.app.database.base import Base
+from backend.app.database.session import get_db
 from backend.app.main import app
-from backend.app.database.session import SessionLocal
 from backend.app.models.candidate import CandidateProfile
 from backend.app.models.resume import JobDescription, Resume, ResumeVersion, ATSEvaluation
+from backend.app.services.profile_ingestion import ProfileIngestionService
+
+
+@pytest.fixture(autouse=True)
+def setup_isolated_test_db():
+    """Isolate E2E test with in-memory database pre-seeded with sujal and demo_candidate."""
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(bind=engine)
+    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+    seed_session = TestingSessionLocal()
+    ingestion = ProfileIngestionService()
+    ingestion.import_all(seed_session, target_profile_ids=["demo_candidate", "sujal"], overwrite=False)
+    seed_session.commit()
+    seed_session.close()
+
+    def override_get_db():
+        db = TestingSessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    app.dependency_overrides[get_db] = override_get_db
+    yield
+    app.dependency_overrides.clear()
+    Base.metadata.drop_all(bind=engine)
+
 
 client = TestClient(app)
 

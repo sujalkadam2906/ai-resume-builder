@@ -17,6 +17,12 @@ class CandidateProfile(Base, TimestampMixin):
     __tablename__ = "candidate_profiles"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid,
+        ForeignKey("auth.users.id", ondelete="CASCADE"),
+        index=True,
+        nullable=True,
+    )
     slug: Mapped[str] = mapped_column(String(100), unique=True, index=True, nullable=False)
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
     display_name: Mapped[str] = mapped_column(String(255), nullable=False)

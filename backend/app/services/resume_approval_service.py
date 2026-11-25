@@ -21,8 +21,12 @@ class ResumeApprovalService:
     """Manages human-in-the-loop review, edits, version immutability, and approval workflow."""
 
     @staticmethod
-    def get_resume(session: Session, resume_id: uuid.UUID) -> Optional[DBResume]:
-        """Fetch complete resume record by UUID."""
+    def get_resume(
+        session: Session,
+        resume_id: uuid.UUID,
+        user_id: Optional[uuid.UUID] = None,
+    ) -> Optional[DBResume]:
+        """Fetch complete resume record by UUID and optional user ownership."""
         stmt = (
             select(DBResume)
             .options(
@@ -31,21 +35,37 @@ class ResumeApprovalService:
             )
             .filter_by(id=resume_id)
         )
+        if user_id is not None:
+            from backend.app.config import settings
+            dev_user_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, "dev-local-user")
+            if not settings.is_production and user_id == dev_user_uuid:
+                stmt = stmt.filter((DBResume.user_id == user_id) | (DBResume.user_id.is_(None)))
+            else:
+                stmt = stmt.filter(DBResume.user_id == user_id)
         return session.execute(stmt).scalar_one_or_none()
 
     @staticmethod
     def list_resumes(
         session: Session,
         profile_id: Optional[str] = None,
+        user_id: Optional[uuid.UUID] = None,
         status_filter: Optional[str] = None,
         page: int = 1,
         size: int = 20,
     ) -> Tuple[List[DBResume], int]:
-        """List resumes with optional profile/status filtering and pagination."""
+        """List resumes with optional tenant/profile/status filtering and pagination."""
         stmt = select(DBResume).order_by(desc(DBResume.created_at))
 
+        if user_id is not None:
+            from backend.app.config import settings
+            dev_user_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, "dev-local-user")
+            if not settings.is_production and user_id == dev_user_uuid:
+                stmt = stmt.filter((DBResume.user_id == user_id) | (DBResume.user_id.is_(None)))
+            else:
+                stmt = stmt.filter(DBResume.user_id == user_id)
+
         if profile_id:
-            profile = ProfileService.get_profile_by_id_or_slug(session, profile_id)
+            profile = ProfileService.get_profile_by_id_or_slug(session, profile_id, user_id=user_id)
             if profile:
                 stmt = stmt.filter(DBResume.profile_id == profile.id)
             else:

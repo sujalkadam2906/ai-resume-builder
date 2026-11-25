@@ -50,9 +50,15 @@ class ProfileService:
     # --------------------------------------------------------------------------
 
     @staticmethod
-    def get_profile_by_id_or_slug(session: Session, identifier: str) -> Optional[CandidateProfile]:
+    def get_profile_by_id_or_slug(
+        session: Session,
+        identifier: str,
+        user_id: Optional[uuid.UUID] = None,
+    ) -> Optional[CandidateProfile]:
         """Resolve a candidate profile by either its UUID or natural slug.
         
+        If user_id is provided, enforces that the profile is either owned by that user
+        or is a synthetic shared demo template (is_synthetic=True).
         Eagerly loads all child relationships for detailed representation.
         """
         # Try resolving as UUID
@@ -82,17 +88,46 @@ class ProfileService:
         else:
             stmt = stmt.filter(CandidateProfile.slug == str(identifier).strip())
 
+        if user_id is not None:
+            from backend.app.config import settings
+            dev_user_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, "dev-local-user")
+            if not settings.is_production and user_id == dev_user_uuid:
+                stmt = stmt.filter(
+                    (CandidateProfile.user_id == user_id)
+                    | (CandidateProfile.is_synthetic == True)
+                    | (CandidateProfile.user_id.is_(None))
+                )
+            else:
+                stmt = stmt.filter(
+                    (CandidateProfile.user_id == user_id) | (CandidateProfile.is_synthetic == True)
+                )
+
         return session.execute(stmt).scalar_one_or_none()
 
     @staticmethod
     def list_profiles(
         session: Session,
+        user_id: Optional[uuid.UUID] = None,
         page: int = 1,
         size: int = 20,
         include_archived: bool = False,
     ) -> Tuple[List[CandidateProfile], int]:
-        """List candidate profiles with pagination and optional archived profile inclusion."""
+        """List candidate profiles with pagination, tenant filtering, and optional archived profile inclusion."""
         stmt = select(CandidateProfile).order_by(CandidateProfile.created_at.desc())
+
+        if user_id is not None:
+            from backend.app.config import settings
+            dev_user_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, "dev-local-user")
+            if not settings.is_production and user_id == dev_user_uuid:
+                stmt = stmt.filter(
+                    (CandidateProfile.user_id == user_id)
+                    | (CandidateProfile.is_synthetic == True)
+                    | (CandidateProfile.user_id.is_(None))
+                )
+            else:
+                stmt = stmt.filter(
+                    (CandidateProfile.user_id == user_id) | (CandidateProfile.is_synthetic == True)
+                )
 
         all_profiles = session.execute(stmt).scalars().all()
 
@@ -114,7 +149,11 @@ class ProfileService:
     # --------------------------------------------------------------------------
 
     @staticmethod
-    def create_profile(session: Session, data: CandidateProfileCreate) -> CandidateProfile:
+    def create_profile(
+        session: Session,
+        data: CandidateProfileCreate,
+        user_id: Optional[uuid.UUID] = None,
+    ) -> CandidateProfile:
         """Create a new candidate profile, validating unique slug and adding initial sections."""
         existing = session.execute(
             select(CandidateProfile).filter_by(slug=data.slug)
@@ -129,6 +168,7 @@ class ProfileService:
 
         profile = CandidateProfile(
             id=profile_id,
+            user_id=user_id or data.user_id,
             slug=data.slug,
             full_name=data.full_name,
             display_name=data.display_name or data.full_name,
@@ -143,7 +183,7 @@ class ProfileService:
             summaries=data.summaries or {},
             links=data.links or {},
             config_rules=config_rules,
-            is_synthetic=data.is_synthetic,
+            is_synthetic=bool(data.is_synthetic),
         )
         session.add(profile)
         session.flush()
@@ -236,6 +276,159 @@ class ProfileService:
         profile.config_rules = rules
         session.commit()
         return ProfileService.get_profile_by_id_or_slug(session, str(profile.id))
+
+    @staticmethod
+    def clone_profile(
+        session: Session,
+        source_profile_id: str,
+        user_id: uuid.UUID,
+        new_slug: Optional[str] = None,
+        new_name: Optional[str] = None,
+    ) -> CandidateProfile:
+        """Clone an accessible candidate profile (e.g. demo_candidate) into the user's workspace."""
+        source = ProfileService.get_profile_by_id_or_slug(session, source_profile_id, user_id=user_id)
+        if not source:
+            raise ValueError(f"Source candidate profile '{source_profile_id}' not found.")
+
+        # Determine target slug
+        if new_slug:
+            target_slug = new_slug.strip().lower()
+            existing = session.execute(
+                select(CandidateProfile).filter_by(slug=target_slug)
+            ).scalar_one_or_none()
+            if existing:
+                raise ValueError(f"Candidate profile with slug '{target_slug}' already exists.")
+        else:
+            base_slug = f"{source.slug}_copy"
+            target_slug = base_slug
+            counter = 1
+            while session.execute(select(CandidateProfile).filter_by(slug=target_slug)).scalar_one_or_none() is not None:
+                target_slug = f"{base_slug}_{counter}"
+                counter += 1
+
+        new_profile_id = uuid.uuid4()
+        config_rules = dict(source.config_rules or {})
+        config_rules["is_archived"] = False
+        config_rules.pop("archived_at", None)
+
+        cloned_profile = CandidateProfile(
+            id=new_profile_id,
+            user_id=user_id,
+            slug=target_slug,
+            full_name=new_name or source.full_name,
+            display_name=new_name or source.display_name,
+            email=source.email,
+            phone=source.phone,
+            location=source.location,
+            open_to_relocate=source.open_to_relocate,
+            immediate_joiner=source.immediate_joiner,
+            professional_headline=source.professional_headline,
+            professional_summary=source.professional_summary,
+            headlines=dict(source.headlines or {}),
+            summaries=dict(source.summaries or {}),
+            links=dict(source.links or {}),
+            config_rules=config_rules,
+            is_synthetic=False,
+        )
+        session.add(cloned_profile)
+        session.flush()
+
+        # Deep copy child entities
+        for edu in (source.educations or []):
+            session.add(Education(
+                id=uuid.uuid4(),
+                profile_id=new_profile_id,
+                degree=edu.degree,
+                institution=edu.institution,
+                duration=edu.duration,
+                start_year=edu.start_year,
+                end_year=edu.end_year,
+                cgpa=edu.cgpa,
+                score=edu.score,
+                scale=edu.scale,
+                source=edu.source,
+                display_order=edu.display_order,
+            ))
+
+        for exp in (source.experiences or []):
+            session.add(Experience(
+                id=uuid.uuid4(),
+                profile_id=new_profile_id,
+                role=exp.role,
+                organization=exp.organization,
+                duration=exp.duration,
+                metrics=exp.metrics,
+                description=exp.description,
+                bullets=list(exp.bullets or []),
+                source=exp.source,
+                display_order=exp.display_order,
+            ))
+
+        for sk in (source.skills or []):
+            session.add(Skill(
+                id=uuid.uuid4(),
+                profile_id=new_profile_id,
+                category=sk.category,
+                skill_name=sk.skill_name,
+                display_order=sk.display_order,
+            ))
+
+        for prj in (source.projects or []):
+            session.add(Project(
+                id=uuid.uuid4(),
+                profile_id=new_profile_id,
+                slug=prj.slug,
+                title=prj.title,
+                subtitle=prj.subtitle,
+                notice=prj.notice,
+                is_fixed_project=prj.is_fixed_project,
+                fixed_position=prj.fixed_position,
+                display_order=prj.display_order,
+                categories=list(prj.categories or []),
+                skills=list(prj.skills or []),
+                links=list(prj.links or []) if isinstance(prj.links, list) else prj.links,
+                bullets=list(prj.bullets or []),
+                metrics=list(prj.metrics or []),
+                evidence_source=prj.evidence_source,
+                verification_status=prj.verification_status,
+            ))
+
+        for cert in (source.certifications or []):
+            session.add(Certification(
+                id=uuid.uuid4(),
+                profile_id=new_profile_id,
+                name=cert.name,
+                issuer=cert.issuer,
+                issue_date=cert.issue_date,
+                display_order=cert.display_order,
+            ))
+
+        for ach in (source.achievements or []):
+            session.add(Achievement(
+                id=uuid.uuid4(),
+                profile_id=new_profile_id,
+                title=ach.title,
+                description=ach.description,
+                bullets=list(ach.bullets or []),
+                source=ach.source,
+                display_order=ach.display_order,
+            ))
+
+        for pd in (source.professional_developments or []):
+            session.add(ProfessionalDevelopment(
+                id=uuid.uuid4(),
+                profile_id=new_profile_id,
+                title=pd.title,
+                organization=pd.organization,
+                date=pd.date,
+                bullets=list(pd.bullets or []),
+                source=pd.source,
+                conflict_note=pd.conflict_note,
+                display_order=pd.display_order,
+            ))
+
+        session.commit()
+        return ProfileService.get_profile_by_id_or_slug(session, str(new_profile_id), user_id=user_id)
 
     # --------------------------------------------------------------------------
     # Education Child Operations

@@ -11,10 +11,10 @@ from pydantic import BaseModel, ConfigDict, Field
 # ==============================================================================
 
 class JobDescriptionBase(BaseModel):
-    job_title: Optional[str] = Field(None, description="Job role or title", examples=["Full Stack Developer"])
-    company_name: Optional[str] = Field(None, description="Hiring company name", examples=["Google"])
-    raw_text: str = Field(..., min_length=20, description="Full job description text")
-    source_url: Optional[str] = Field(None, description="Optional job posting source URL")
+    job_title: Optional[str] = Field(None, max_length=255, description="Job role or title", examples=["Full Stack Developer"])
+    company_name: Optional[str] = Field(None, max_length=255, description="Hiring company name", examples=["Google"])
+    raw_text: str = Field(..., min_length=20, max_length=50000, description="Full job description text")
+    source_url: Optional[str] = Field(None, max_length=2048, description="Optional job posting source URL")
 
 
 class JobDescriptionCreate(JobDescriptionBase):
@@ -22,14 +22,15 @@ class JobDescriptionCreate(JobDescriptionBase):
 
 
 class JobDescriptionUpdate(BaseModel):
-    job_title: Optional[str] = None
-    company_name: Optional[str] = None
-    raw_text: Optional[str] = None
-    source_url: Optional[str] = None
+    job_title: Optional[str] = Field(None, max_length=255)
+    company_name: Optional[str] = Field(None, max_length=255)
+    raw_text: Optional[str] = Field(None, min_length=20, max_length=50000)
+    source_url: Optional[str] = Field(None, max_length=2048)
 
 
 class JobDescriptionResponse(BaseModel):
     id: uuid.UUID
+    user_id: Optional[uuid.UUID] = None
     profile_id: Optional[uuid.UUID] = None
     job_title: Optional[str] = None
     company_name: Optional[str] = None
@@ -121,6 +122,7 @@ class ResumeUpdateRequest(BaseModel):
 
 class ResumeResponse(BaseModel):
     id: uuid.UUID
+    user_id: Optional[uuid.UUID] = None
     profile_id: uuid.UUID
     job_description_id: Optional[uuid.UUID] = None
     resume_title: str

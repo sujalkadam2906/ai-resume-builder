@@ -24,9 +24,12 @@ def test_liveness_health_endpoint():
     assert data["version"] == "1.0.0"
 
 
-def test_readiness_probe_endpoint():
+def test_readiness_probe_endpoint(monkeypatch):
+    import backend.app.api.v1.endpoints.health as health_mod
+    monkeypatch.setattr(health_mod, "check_db_connection", lambda: (True, "Database connection healthy"))
+
     response = client.get("/api/v1/health/ready")
-    assert response.status_code in (200, 503)
+    assert response.status_code == 200
     data = response.json()
     assert "checks" in data
     assert "storage" in data["checks"]

@@ -275,22 +275,24 @@ def test_profile_relationships_and_cascade_delete(test_db_session: Session):
 # 4. Readiness Probe Integration & Degraded Simulation
 # ------------------------------------------------------------------------------
 
-def test_readiness_probe_database_status():
+def test_readiness_probe_database_status(monkeypatch):
     """Verify the /health/ready endpoint inspects database health accurately."""
     client = TestClient(app)
+    import backend.app.api.v1.endpoints.health as health_mod
 
-    # 1. Normal execution (with live DB or configured DB)
+    # 1. Normal execution (with mocked healthy DB to prevent network timeouts)
+    monkeypatch.setattr(health_mod, "check_db_connection", lambda: (True, "Database connection healthy"))
     response = client.get("/api/v1/health/ready")
-    assert response.status_code in (200, 503)
+    assert response.status_code == 200
     data = response.json()
     assert "database" in data["checks"]
-    assert "status" in data["checks"]["database"]
+    assert data["checks"]["database"]["status"] == "ok"
 
     # 2. Simulated degraded database condition
-    with patch("backend.app.api.v1.endpoints.health.check_db_connection", return_value=(False, "Connection timeout")):
-        degraded_resp = client.get("/api/v1/health/ready")
-        assert degraded_resp.status_code == 503
-        degraded_data = degraded_resp.json()
-        assert degraded_data["status"] == "degraded"
-        assert degraded_data["checks"]["database"]["status"] == "error"
-        assert degraded_data["checks"]["database"]["detail"] == "Connection timeout"
+    monkeypatch.setattr(health_mod, "check_db_connection", lambda: (False, "Connection timeout"))
+    degraded_resp = client.get("/api/v1/health/ready")
+    assert degraded_resp.status_code == 503
+    degraded_data = degraded_resp.json()
+    assert degraded_data["status"] == "degraded"
+    assert degraded_data["checks"]["database"]["status"] == "error"
+    assert "Database connectivity check failed." in degraded_data["checks"]["database"]["detail"]

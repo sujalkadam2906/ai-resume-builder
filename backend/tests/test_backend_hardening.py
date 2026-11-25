@@ -118,24 +118,29 @@ def test_tamper_proofing_is_archived_via_patch(hardening_client):
 
 
 def test_archived_profile_mutation_guard(hardening_client):
-    """Confirm archived profiles reject all mutating endpoints with HTTP 400 Bad Request."""
+    """Confirm archived profiles reject all mutating endpoints with HTTP 400 Bad Request and synthetic templates reject mutations with 403."""
     client, _ = hardening_client
 
-    # 1. Archive demo_candidate
-    archive_resp = client.delete("/api/v1/profiles/demo_candidate")
+    # Demo template cannot be deleted/archived
+    demo_resp = client.delete("/api/v1/profiles/demo_candidate")
+    assert demo_resp.status_code == 403
+    assert "Shared demo candidate template is read-only" in demo_resp.json()["detail"]
+
+    # 1. Archive sujal
+    archive_resp = client.delete("/api/v1/profiles/sujal")
     assert archive_resp.status_code == 200
     assert archive_resp.json()["status"] == "archived"
 
-    expected_msg = "Candidate profile 'demo_candidate' is archived. Restore the profile before making modifications."
+    expected_msg = "Candidate profile 'sujal' is archived. Restore the profile before making modifications."
 
     # 2. Attempt PATCH on profile
-    p_resp = client.patch("/api/v1/profiles/demo_candidate", json={"location": "Berlin"})
+    p_resp = client.patch("/api/v1/profiles/sujal", json={"location": "Berlin"})
     assert p_resp.status_code == 400
     assert p_resp.json()["detail"] == expected_msg
 
     # 3. Attempt POST education
     edu_post = client.post(
-        "/api/v1/profiles/demo_candidate/education",
+        "/api/v1/profiles/sujal/education",
         json={"degree": "B.Tech", "institution": "Tech University", "start_year": 2020},
     )
     assert edu_post.status_code == 400
@@ -143,7 +148,7 @@ def test_archived_profile_mutation_guard(hardening_client):
 
     # 4. Attempt POST project
     proj_post = client.post(
-        "/api/v1/profiles/demo_candidate/projects",
+        "/api/v1/profiles/sujal/projects",
         json={"slug": "new_proj", "title": "New Project", "description": "Test"},
     )
     assert proj_post.status_code == 400
@@ -151,23 +156,23 @@ def test_archived_profile_mutation_guard(hardening_client):
 
     # 5. Attempt POST skill
     skill_post = client.post(
-        "/api/v1/profiles/demo_candidate/skills",
+        "/api/v1/profiles/sujal/skills",
         json={"category": "languages", "skill_name": "Go", "display_order": 99},
     )
     assert skill_post.status_code == 400
     assert skill_post.json()["detail"] == expected_msg
 
     # 6. Read endpoints must still function for inspection
-    read_resp = client.get("/api/v1/profiles/demo_candidate")
+    read_resp = client.get("/api/v1/profiles/sujal")
     assert read_resp.status_code == 200
     assert read_resp.json()["is_archived"] is True
 
     # 7. Restore profile and confirm mutations succeed again
-    restore_resp = client.post("/api/v1/profiles/demo_candidate/restore")
+    restore_resp = client.post("/api/v1/profiles/sujal/restore")
     assert restore_resp.status_code == 200
     assert restore_resp.json()["status"] == "restored"
 
-    post_restore = client.patch("/api/v1/profiles/demo_candidate", json={"location": "Berlin"})
+    post_restore = client.patch("/api/v1/profiles/sujal", json={"location": "Berlin"})
     assert post_restore.status_code == 200
     assert post_restore.json()["location"] == "Berlin"
 

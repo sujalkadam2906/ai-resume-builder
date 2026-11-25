@@ -1,286 +1,225 @@
 # Production Deployment & Operations Guide
 
-**Application:** AI-Powered Resume Builder & Candidate Platform  
-**Target Architecture:** Modular Monolith with Zero-Trust Edge Security  
-**Audience:** DevSecOps Engineers, System Administrators, Full-Stack Developers  
+**Application:** AI-Powered Resume Builder & Candidate Platform
+**Target Architecture:** Vercel (React SPA) + Render (FastAPI Backend) + Supabase (PostgreSQL + Auth)
+**Audience:** DevSecOps Engineers, System Administrators, Full-Stack Developers
 
 ---
 
-## 1. Recommended Architecture
+## 1. Production Architecture
 
-The production architecture is intentionally designed as an efficient, highly reliable modular monolith. It avoids unnecessary complexity (no Kubernetes, Redis, or Kafka clusters required) while providing enterprise-grade security and zero open inbound ports via Cloudflare Tunnel.
-
-```
-                              [ User Browser ]
-                                     │
-                                     ▼
-                ┌─────────────────────────────────────────┐
-                │        Cloudflare Zero Trust Edge        │
-                │  - DDoS Protection & Web Application FW │
-                │  - Identity Provider (Google / Email OTP)│
-                │  - Injects 'Cf-Access-Jwt-Assertion'    │
-                └────────────────────┬────────────────────┘
-                                     │ Encrypted Cloudflare Tunnel
-                                     ▼
-     ┌─────────────────────────────────────────────────────────────┐
-     │                     Production Server                       │
-     │                                                             │
-     │   ┌─────────────────────────────────────────────────────┐   │
-     │   │                    cloudflared                      │   │
-     │   │     (Zero open inbound ports on the host firewall)  │   │
-     │   └──────────────┬──────────────────────┬───────────────┘   │
-     │                  │                      │                   │
-     │         Port 80  ▼             Port 8000▼                   │
-     │    ┌──────────────────┐   ┌─────────────────────────────┐   │
-     │    │  Nginx / Static  │   │       FastAPI Backend       │   │
-     │    │   React SPA      │   │  - Independent JWT verify   │   │
-     │    │   (Vite dist)    │   │  - Rate Limiter & Headers   │   │
-     │    └──────────────────┘   │  - Resume Engine CLI        │   │
-     │                           └─────────────┬───────────────┘   │
-     │                                         │                   │
-     │                                 Port 5432│                   │
-     │                                         ▼                   │
-     │                           ┌─────────────────────────────┐   │
-     │                           │        PostgreSQL 16        │   │
-     │                           │   (Encrypted Volume Mount)  │   │
-     │                           └─────────────────────────────┘   │
-     │                                                             │
-     │    ┌────────────────────────────────────────────────────┐   │
-     │    │ Persistent Storage: /app/storage/resumes           │   │
-     │    └────────────────────────────────────────────────────┘   │
-     └─────────────────────────────────────────────────────────────┘
+```text
+                       [ User Browser ]
+                              │
+         ┌────────────────────┴────────────────────┐
+         │                                         │
+         ▼ (HTTPS)                                 ▼ (HTTPS + Bearer JWT)
+┌──────────────────────┐                ┌──────────────────────────────┐
+│   Vercel Frontend    │                │     Render Web Service       │
+│  React + Vite SPA    │                │       FastAPI Backend        │
+│  - Supabase JS Auth  │                │  - Supabase JWKS JWT Verify  │
+│  - Invite-only gate  │                │  - Tenant Ownership Scoping  │
+└────────┬─────────────┘                │  - Sliding-Window Rate Limit │
+         │                              └──────────────┬───────────────┘
+         │ (Auth API)                                  │ (psycopg / SQLAlchemy)
+         ▼                                             ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│                         Supabase Platform                            │
+│  - Supabase Auth (GoTrue, Email Confirmation, Password Recovery)     │
+│  - Supabase PostgreSQL (13 App Tables + auth.users + RLS Policies)   │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 2. Infrastructure & Hosting Requirements
+## 2. Authentication & Access Control Configuration
 
-### Minimum Recommended Server Specs:
-- **Compute:** 2 vCPU cores
-- **Memory:** 2 GB RAM (4 GB recommended for ReportLab PDF rendering spikes)
-- **Disk:** 25 GB NVMe SSD storage
-- **Operating System:** Ubuntu 22.04 LTS or Debian 12
-- **Suitable Providers:** Hetzner Cloud (CX22/CPX21), Vultr High Frequency, DigitalOcean Droplet, AWS EC2 (t4g.small), or managed PaaS (Render / Railway with Supabase).
+### Supabase Auth Dashboard Settings (Manual Verification Required)
+1. **Authentication → Providers → Email**:
+   - **Enable Email provider**: `ON`
+   - **Confirm email**: `ON` (mandatory — prevents Supabase from issuing a session/JWT to unconfirmed email addresses).
+2. **Authentication → URL Configuration**:
+   - **Site URL**: `https://<your-vercel-domain>.vercel.app`
+   - **Redirect URLs**: Add `https://<your-vercel-domain>.vercel.app/auth/callback`
+3. **Authentication → Rate Limits / SMTP**:
+   - Supabase Free tier default SMTP is rate-limited (low hourly email cap). Configure custom SMTP before opening public signup.
 
----
-
-## 3. Server Environment Preparation
-
-### Step 1: Install Docker & Docker Compose
-```bash
-sudo apt-get update
-sudo apt-get install -y ca-certificates curl gnupg lsb-release
-
-# Add Docker's official GPG key
-sudo mkdir -p /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-
-# Set up repository
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-sudo apt-get update
-sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
-```
-
-### Step 2: Configure Environment Variables
-Copy `docs/PRODUCTION_ENV_TEMPLATE.md` to `.env` on your server:
-```bash
-cp docs/PRODUCTION_ENV_TEMPLATE.md .env
-chmod 600 .env
-```
-Fill in your production PostgreSQL credentials, Cloudflare Access team name, Application AUD, and AI provider API keys.
+### Server-Side Enforcement (`backend/app/core/auth.py`)
+- **JWT Verification**: Every protected `/api/v1/*` route requires `Authorization: Bearer <supabase_jwt>`, verified cryptographically via `{SUPABASE_URL}/auth/v1/.well-known/jwks.json` (`RS256`, `ES256`, `EdDSA`), checking `aud`, `iss`, `exp`, and `sub`.
+- **Email Verification**:
+  - Standard Supabase JWTs do not include `email_confirmed_at` or top-level `email_verified` unless a Custom Access Token Hook is configured.
+  - `SupabaseAuthValidator.verify_jwt()` rejects any token containing `email_verified: false` or `email_confirmed_at: null`.
+  - When those claims are absent, `get_current_user()` queries `auth.users.email_confirmed_at` on PostgreSQL and rejects unconfirmed users with `HTTP 403`.
+- **Access & Signup Gating (`ALLOWED_EMAILS` + `ALLOW_PUBLIC_SIGNUP`)**:
+  - **Operator-only / Restricted Beta (default)**: `ALLOW_PUBLIC_SIGNUP=false` and `ALLOWED_EMAILS=operator@example.com` (or comma-separated beta list).
+  - **Fail-closed safety**: If `ALLOWED_EMAILS` is empty AND `ALLOW_PUBLIC_SIGNUP=false`, the backend rejects all users with `HTTP 403`.
+  - **Public SaaS (only after explicit approval)**: Set `ALLOW_PUBLIC_SIGNUP=true` (backend), `ALLOWED_EMAILS=` (empty), and `VITE_ALLOW_PUBLIC_SIGNUP=true` (frontend).
 
 ---
 
-## 4. Zero-Trust Cloudflare Access Setup
+## 3. Supabase Free Plan Backup & Recovery Strategy
 
-### Step 1: Add Application in Cloudflare Zero Trust Dashboard
-1. Log in to [Cloudflare Zero Trust](https://one.dash.cloudflare.com/).
-2. Navigate to **Access** > **Applications** > **Add an application**.
-3. Select **Self-hosted**.
-4. Configure application details:
-   - **Application Name:** `AI Resume Builder`
-   - **Application Domain:** `resume.yourdomain.com`
-   - **Session Duration:** 24 hours
-5. Under **Policies**:
-   - Rule Name: `Allow Team`
-   - Action: `Allow`
-   - Criteria: `Emails` (enter authorized emails e.g. `your.email@example.com`) or `Emails Ending In` (`@yourcompany.com`).
-6. Click **Next** to finalize.
+> [!IMPORTANT]
+> **Supabase Free Plan Limitations & Exclusions:**
+> 1. **No Automated Backups:** Supabase Free plan **does NOT include automated daily backups or Point-in-Time Recovery (PITR)**.
+> 2. **What `supabase db dump` EXCLUDES by default:**
+>    - Running `supabase db dump` (or `pg_dump` on public schema) dumps **only the application tables in the `public` schema**.
+>    - It **excludes platform-managed schemas: `auth`, `storage`, `realtime`, and database extension internals**.
+>    - It **excludes `auth.users` records**. Therefore, if you only dump the `public` schema and restore into a fresh database, all foreign keys referencing `auth.users(id)` (`user_id` on `candidate_profiles`, `resumes`, etc.) will fail or dangle!
+>    - It **excludes database roles, passwords, and service-role grants**.
+> 3. **Physical Storage Exclusions:** SQL dumps contain **zero binary file objects**. If `STORAGE_BACKEND=supabase` is configured, file blobs in Supabase Storage buckets are stored on object storage, not in database SQL dumps. (Currently, the app defaults to `STORAGE_BACKEND=local`, storing generated documents under `/app/storage/resumes`).
 
-### Step 2: Retrieve the Application AUD Tag
-1. In the applications list, click your newly created application.
-2. Click **Overview** or **View JWT AUD**.
-3. Copy the alphanumeric Application Audience tag string.
-4. Set this string in your server's `.env`:
-   ```ini
-   CF_ACCESS_TEAM_NAME=your-team-name
-   CF_ACCESS_AUD=your_application_audience_tag_here
-   REQUIRE_CF_ACCESS=true
-   ```
+### Realistic Backup Limitations & What Can Actually Be Dumped:
 
-### Step 3: Install & Start Cloudflare Tunnel (`cloudflared`)
-Cloudflare Tunnel exposes the local web server to your domain without opening any inbound ports on your server firewall.
+#### Part A: Application Data Dump (`public` schema)
 ```bash
-# Install cloudflared
-curl -L --output cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
-sudo dpkg -i cloudflared.deb
+mkdir -p backups
 
-# Authenticate tunnel
-cloudflared tunnel login
-
-# Create tunnel
-cloudflared tunnel create resume-builder-tunnel
-
-# Configure ingress in ~/.cloudflared/config.yml:
-tunnel: <TUNNEL_UUID>
-credentials-file: /root/.cloudflared/<TUNNEL_UUID>.json
-
-ingress:
-  - hostname: resume.yourdomain.com
-    service: http://localhost:8000
-  - service: http_status:404
-
-# Route DNS
-cloudflared tunnel route dns resume-builder-tunnel resume.yourdomain.com
-
-# Run tunnel as a persistent system service
-sudo cloudflared service install
-sudo systemctl enable cloudflared
-sudo systemctl start cloudflared
+# Export application schema and records (public tables only)
+supabase db dump --db-url "$SUPABASE_DB_URL" -f backups/supabase_public_$(date +%Y%m%d_%H%M).sql
+chmod 600 backups/supabase_*.sql
 ```
+
+#### Part B: Auth Identity Limitation (UNRESOLVED RECOVERY LIMITATION)
+> [!CAUTION]
+> **Supabase Auth Schema Backup Is An Unresolved Recovery Limitation:**
+> - `supabase db dump` is a wrapper that explicitly filters out platform-managed schemas, including `auth`.
+> - Do not rely on unverified CLI flags to back up GoTrue auth state. Attempting to manually dump and restore the internal `auth` schema over a live Supabase project can corrupt authentication state, break GoTrue internal versioning, or violate platform constraints.
+> - **Operational Reality:** On the Supabase Free plan, **there is no officially supported, fully verified end-to-end mechanism to export and restore the complete Supabase Auth service state**.
+> - For rollback/recovery on the **existing** Supabase project, `auth.users` remains untouched in PostgreSQL by our migrations, which only modify `public` tables.
+> - In a total disaster recovery scenario (e.g. migrating to a completely new Supabase project ref), user accounts and encrypted passwords cannot be automatically restored from a public SQL dump and would need to be re-invited or recreated via the Supabase Admin API.
+
+#### Part C: Storage Objects
+- For `STORAGE_BACKEND=local`: Persist the mounted server directory (`/app/storage/resumes` or `./storage`).
+- For `STORAGE_BACKEND=supabase`: File blobs reside in object storage and are **not** present in SQL dumps. Mirror bucket contents via Storage API if enabled.
 
 ---
 
-## 5. Database Setup & Migrations
+### Realistic Recovery Strategy & Limitations:
 
-### Step 1: Start PostgreSQL
-```bash
-docker compose up -d db
-```
+> [!WARNING]
+> **Do not claim complete disaster recovery unless verified!**
+> A tested, realistic recovery strategy follows:
 
-### Step 2: Run Alembic Database Migrations
-Ensure the database schema is up-to-date with all 13 application tables:
-```bash
-docker compose run --rm backend alembic upgrade head
-```
-
-### Step 3: Seed Initial Candidate Profiles (One-Time)
-Import the master candidate profiles into the database:
-```bash
-docker compose run --rm backend python -c "
-from backend.app.database.session import SessionLocal
-from backend.app.services.profile_ingestion import ProfileIngestionService
-
-session = SessionLocal()
-ingestion = ProfileIngestionService()
-res = ingestion.import_all(session, target_profile_ids=['demo_candidate', 'sujal'], overwrite=False)
-print('Ingestion Complete:', res)
-session.close()
-"
-```
-
----
-
-## 6. Frontend Production Build
-
-The React single-page app must be compiled to optimized static assets:
-```bash
-# Build production bundle inside frontend/
-npm --prefix frontend install
-npm --prefix frontend run build
-```
-The output will reside in `frontend/dist/`. In production, this directory can be served via Nginx or embedded into the backend container as static files.
-
----
-
-## 7. Starting the Backend Service
-
-Run the containerized backend using Docker Compose:
-```bash
-docker compose up -d backend
-```
-
-Verify backend health:
-```bash
-curl http://localhost:8000/api/v1/health
-# Response: {"status":"healthy","database":"connected","timestamp":"..."}
-
-curl http://localhost:8000/api/v1/health/ready
-# Response: {"status":"ready","database":"connected","checks":{...}}
-```
-
----
-
-## 8. Automated Database Backup Procedure
-
-Backups are critical for production data safety.
-
-### Running a Manual Backup
-```bash
-python scripts/backup_db.py
-```
-This script dumps the database via `pg_dump`, calculates a cryptographic SHA256 checksum, and saves metadata into `backups/`.
-
-### Setting Up Automated Daily Backups via Crontab
-Add a cron job to execute the backup script daily at 2:00 AM:
-```bash
-crontab -e
-```
-Add the following entry:
-```cron
-0 2 * * * cd /opt/ai-resume-builder && /usr/bin/python3 scripts/backup_db.py >> /var/log/resume_builder_backup.log 2>&1
-```
-
-### Database Restoration Procedure
-In the event of hardware failure or disaster recovery:
-1. Ensure the PostgreSQL service is running:
+1. **Validation on Disposable Local PostgreSQL (SCHEMA & APPLICATION FK VALIDATION ONLY)**:
+   > [!NOTE]
+   > The disposable local container test uses a lightweight `auth.users` table stub.
+   > This validates **only application foreign keys, table constraints, and ownership backfill restoration**.
+   > It does **NOT** validate or test real Supabase GoTrue Auth service recovery.
    ```bash
-   docker compose up -d db
+   docker run --name pg-backup-verify -e POSTGRES_PASSWORD=postgres -p 5435:5432 -d postgres:16
+   PGPASSWORD=postgres psql -h localhost -p 5435 -U postgres -c "CREATE DATABASE restore_verify;"
+
+   # Step 1: Initialize minimal auth.users stub to satisfy application foreign keys
+   PGPASSWORD=postgres psql -h localhost -p 5435 -U postgres -d restore_verify -c \
+     "CREATE SCHEMA IF NOT EXISTS auth; CREATE TABLE auth.users (id uuid PRIMARY KEY, email text, email_confirmed_at timestamptz); \
+      INSERT INTO auth.users (id, email, email_confirmed_at) VALUES ('00000000-0000-0000-0000-000000000001', 'operator@example.com', now());"
+
+   # Step 2: Restore public schema tables & data
+   PGPASSWORD=postgres psql -h localhost -p 5435 -U postgres -d restore_verify -f backups/supabase_public_*.sql
+
+   # Step 3: Verify sujal and demo_candidate integrity
+   PGPASSWORD=postgres psql -h localhost -p 5435 -U postgres -d restore_verify -c \
+     "SELECT slug, is_synthetic, user_id FROM candidate_profiles;"
+
+   docker rm -f pg-backup-verify
    ```
-2. Restore the SQL backup file:
-   ```bash
-   cat backups/resume_builder_backup_<timestamp>.sql | docker exec -i resume_builder_db psql -U postgres -d resume_builder
-   ```
-3. Run readiness check to confirm restoration:
-   ```bash
-   curl http://localhost:8000/api/v1/health/ready
-   ```
+
+2. **Rollback on Production Supabase (Maintenance Window Recovery)**:
+   - If an upgrade failure occurs during the maintenance window:
+     - Prefer executing the Alembic downgrade if schema-only: `alembic downgrade 4426bf87b36a`.
+     - If public data corruption occurred, restore the `public` schema dump (`backups/supabase_public_*.sql`) using `psql` to recreate the public application tables.
+     - `auth.users` will remain intact in Supabase Auth on the existing instance, preserving user UUIDs.
+   - **Expected Downtime**: 15–30 minutes. Any new user activity created after the backup timestamp is lost.
+   - **Storage Recovery**: If local storage was lost, re-generate exports from approved resume manifests via the API.
 
 ---
 
-## 9. Monitoring & Maintenance
+## 4. Production Migration Maintenance Window & Deployment Sequence
 
-### Health & Liveness Checks:
-- **Liveness Probe:** `GET /api/v1/health` (HTTP 200)
-- **Readiness Probe:** `GET /api/v1/health/ready` (HTTP 200, checks DB connection pool)
-- **AI Providers Cascade Status:** `GET /api/v1/system/providers` (Requires Cloudflare Access JWT in production)
+> [!IMPORTANT]
+> **Why RLS Alone Is Insufficient During Migration:**
+> The backend application connects to PostgreSQL using the primary database user (`postgres` / connection pooler). In PostgreSQL, superusers and table owners **bypass Row-Level Security (BYPASSRLS)** by default. Therefore, RLS policies enforced for limited roles do NOT restrict the backend service role!
+> The **application code's query-level tenant isolation is the primary security boundary**. If the migration ran while the old backend was running, the old backend would serve newly backfilled data without user isolation checks!
+> Consequently, **a scheduled maintenance window is mandatory** during migration.
 
-### Inspecting Backend Logs:
-```bash
-docker compose logs -f backend --tail=100
-```
+### Step-by-Step Maintenance Window & Rollout Procedure:
+
+1. **Verify Real Production Supabase Backup**:
+   - Create a manual logical export via `supabase db dump` or `pg_dump` (Section 3).
+   - Test-restore the dump into a disposable local PostgreSQL container to verify integrity of `sujal` and `demo_candidate`.
+
+2. **Restrict Traffic / Enter Maintenance Window**:
+   - **Render Backend**: In the Render Dashboard, suspend the Web Service or redirect inbound requests to a static maintenance page.
+   - **Vercel Frontend**: Route to a maintenance notice or pause traffic to avoid incoming mutations during schema change.
+   - **Supabase Auth**: In Supabase Dashboard → Authentication → Settings, confirm **"Disable new user signups"** is toggled ON to prevent new user creations during the migration window.
+   - **Estimated Downtime**: 10–15 minutes.
+
+3. **Review Migration SQL Offline**:
+   ```bash
+   alembic upgrade 7a8f9c0d1e2b --sql
+   ```
+
+4. **Apply Ownership Migration to Supabase**:
+   ```bash
+   alembic upgrade head
+   ```
+
+5. **Verify Database Integrity Immediately**:
+   - Confirm `alembic current` returns `7a8f9c0d1e2b (head)`.
+   - Execute verification query:
+     ```sql
+     SELECT slug, is_synthetic, user_id FROM candidate_profiles;
+     ```
+   - Confirm `sujal` has the operator's exact `auth.users.id` UUID (`is_synthetic = false`).
+   - Confirm `demo_candidate` has `user_id IS NULL` and `is_synthetic = true`.
+   - Confirm all 13 RLS policies exist:
+     ```sql
+     SELECT tablename, policyname FROM pg_policies WHERE schemaname = 'public';
+     ```
+
+6. **Deploy New Tenant-Enforcing Backend on Render**:
+   - Set environment variables:
+     - `APP_ENV=production`
+     - `REQUIRE_AUTH=true`
+     - `ALLOW_PUBLIC_SIGNUP=false`
+     - `ALLOWED_EMAILS=<operator_email>`
+   - Render Health Check Path: `/api/v1/health`.
+   - Trigger deployment.
+
+7. **Verify Backend Health & Tenant Isolation (Before Restoring User Traffic)**:
+   - Probe liveness: `curl -I https://<backend>/api/v1/health` (HTTP 200).
+   - Probe readiness: `curl -I https://<backend>/api/v1/health/ready` (HTTP 200).
+   - Verify unauthenticated requests fail closed: `curl -I https://<backend>/api/v1/profiles` (HTTP 401).
+   - Perform smoke query with operator JWT to confirm private profile is accessible.
+
+8. **Deploy Frontend on Vercel**:
+   - Set `VITE_ALLOW_PUBLIC_SIGNUP=false` (Invite-only default).
+   - Deploy production build.
+
+9. **Restore Public Traffic & Run Acceptance Tests**:
+   - End maintenance window.
+   - Verify end-to-end login, profile loading, and resume generation with operator credentials.
+   - Confirm uninvited users receive 403 Forbidden.
+
+10. **Future Public SaaS Transition (Only After Explicit Approval)**:
+    - Only when ready to accept public registrations:
+      - Supabase Dashboard: Enable new signups.
+      - Render: Set `ALLOW_PUBLIC_SIGNUP=true` and clear `ALLOWED_EMAILS`.
+      - Vercel: Set `VITE_ALLOW_PUBLIC_SIGNUP=true`.
 
 ---
 
-## 10. Rollback Procedure
+## 5. Migration Rollback & Data-Loss Warning
 
-If a deployed update introduces defects:
-1. **Revert Application Code / Image:**
-   ```bash
-   git checkout <PREVIOUS_STABLE_COMMIT_HASH>
-   docker compose build backend
-   docker compose up -d backend
-   ```
-2. **Revert Database Migration (if applicable):**
-   ```bash
-   docker compose run --rm backend alembic downgrade -1
-   ```
-3. **Emergency Database Restoration (if data corruption occurred):**
-   Restore the latest pre-deployment backup using the procedure in Section 8.
-4. **Verify Health:**
-   ```bash
-   curl http://localhost:8000/api/v1/health/ready
-   ```
+> [!CAUTION]
+> **Honest Downgrade Risks:** Running `alembic downgrade 4426bf87b36a` executes `DROP COLUMN user_id` on `candidate_profiles`, `job_descriptions`, `resumes`, and `file_assets`, and drops all 13 RLS policies.
+> - **Permanent data loss:** Any multi-user ownership links (`user_id`) created after the upgrade will be **permanently destroyed** on downgrade, and multi-tenant isolation will stop working if the newer backend code is still running.
+> - **Recommended rollback:** Put the backend in maintenance mode, restore the pre-migration logical Supabase backup created in Section 3, and redeploy the previous backend/frontend commits.
+
+---
+
+## 6. Health Checks & Monitoring
+
+- **Liveness Probe (`/api/v1/health`)**: Returns `HTTP 200` whenever the FastAPI process is alive (no DB check). Configure **Render Health Check Path** to `/api/v1/health`.
+- **Readiness Probe (`/api/v1/health/ready`)**: Verifies storage writeability, resume engine imports, and PostgreSQL connectivity (`SELECT 1`). Returns `HTTP 200` when healthy and `HTTP 503` when degraded, without exposing database URLs or credentials.

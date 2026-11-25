@@ -404,8 +404,9 @@ def test_cross_profile_job_description_isolation(api_client: TestClient):
 
 def test_generate_resume_archived_candidate_rejected(api_client: TestClient):
     """Verify archived candidate profile cannot generate new resumes."""
-    # Archive demo_candidate
-    api_client.delete("/api/v1/profiles/demo_candidate")
+    # Archive sujal
+    del_res = api_client.delete("/api/v1/profiles/sujal")
+    assert del_res.status_code == 200
 
     jd_resp = api_client.post(
         "/api/v1/job-descriptions",
@@ -415,14 +416,20 @@ def test_generate_resume_archived_candidate_rejected(api_client: TestClient):
 
     resp = api_client.post(
         "/api/v1/resumes/generate",
-        json={"profile_id": "demo_candidate", "job_description_id": jd_id},
+        json={"profile_id": "sujal", "job_description_id": jd_id},
     )
     assert resp.status_code == 400
     assert "archived" in resp.json()["detail"].lower()
 
+    # Restore sujal for subsequent tests
+    api_client.post("/api/v1/profiles/sujal/restore")
 
-def test_ai_provider_fallback_to_offline_on_failure(api_client: TestClient):
+
+def test_ai_provider_fallback_to_offline_on_failure(api_client: TestClient, monkeypatch):
     """Verify provider fallback: if an unknown or failing provider is requested, falls back gracefully."""
+    from src.resume_builder.config import config
+    monkeypatch.setitem(config._providers, "priority", ["offline"])
+
     jd_resp = api_client.post("/api/v1/job-descriptions", json={"raw_text": SAMPLE_SWE_JD, "profile_id": "sujal"})
     jd_id = jd_resp.json()["id"]
 

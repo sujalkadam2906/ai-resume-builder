@@ -297,6 +297,7 @@ class ProfessionalDevelopmentResponse(ProfessionalDevelopmentBase):
 
 class CandidateProfileSummary(BaseModel):
     id: uuid.UUID
+    user_id: Optional[uuid.UUID] = Field(None, description="Supabase Auth user UUID owner")
     slug: str = Field(..., description="Candidate unique slug", examples=["sujal", "demo_candidate"])
     full_name: str = Field(..., description="Candidate full name", examples=["Sujal Sunil Kadam"])
     display_name: str = Field(..., description="Header display name", examples=["SUJAL KADAM"])
@@ -334,6 +335,7 @@ class CandidateProfileDetail(CandidateProfileSummary):
 
 
 class CandidateProfileCreate(BaseModel):
+    user_id: Optional[uuid.UUID] = Field(None, description="Supabase Auth user UUID owner")
     slug: str = Field(..., pattern=r"^[a-z0-9_-]+$", description="Lowercase alphanumeric slug with underscores/hyphens", examples=["john_doe"])
     full_name: str = Field(..., description="Candidate full legal name", examples=["John Doe"])
     display_name: Optional[str] = Field(None, description="Header display name", examples=["JOHN DOE"])
@@ -375,6 +377,11 @@ class CandidateProfileUpdate(BaseModel):
     links: Optional[Dict[str, Any]] = None
     config_rules: Optional[Dict[str, Any]] = None
     is_synthetic: Optional[bool] = None
+
+
+class CandidateProfileClone(BaseModel):
+    new_slug: Optional[str] = Field(None, description="Optional custom slug for the cloned profile")
+    new_name: Optional[str] = Field(None, description="Optional custom full name for the cloned profile")
 
 
 class ProfilePaginationResponse(BaseModel):

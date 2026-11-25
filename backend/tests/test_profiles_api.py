@@ -161,17 +161,21 @@ def test_update_profile_partial_patch(api_client: TestClient):
 
 def test_archive_and_restore_profile(api_client: TestClient):
     """Test soft-deletion (archive) and restoration of candidate profile."""
-    # 1. Archive demo_candidate
-    del_resp = api_client.delete("/api/v1/profiles/demo_candidate")
+    # Demo template is read-only and cannot be archived
+    demo_del = api_client.delete("/api/v1/profiles/demo_candidate")
+    assert demo_del.status_code == 403
+
+    # 1. Archive sujal
+    del_resp = api_client.delete("/api/v1/profiles/sujal")
     assert del_resp.status_code == 200
     assert del_resp.json()["status"] == "archived"
 
-    # 2. Default list should now only contain sujal
+    # 2. Default list should now only contain demo_candidate
     list_resp = api_client.get("/api/v1/profiles")
     assert list_resp.status_code == 200
     items = list_resp.json()["items"]
     assert len(items) == 1
-    assert items[0]["slug"] == "sujal"
+    assert items[0]["slug"] == "demo_candidate"
 
     # 3. List with include_archived=true returns both
     all_resp = api_client.get("/api/v1/profiles?include_archived=true")
@@ -179,8 +183,8 @@ def test_archive_and_restore_profile(api_client: TestClient):
     all_items = all_resp.json()["items"]
     assert len(all_items) == 2
 
-    # 4. Restore demo_candidate
-    restore_resp = api_client.post("/api/v1/profiles/demo_candidate/restore")
+    # 4. Restore sujal
+    restore_resp = api_client.post("/api/v1/profiles/sujal/restore")
     assert restore_resp.status_code == 200
     assert restore_resp.json()["status"] == "restored"
 
@@ -238,22 +242,27 @@ def test_experience_crud(api_client: TestClient):
 
 def test_skills_crud(api_client: TestClient):
     """Test Skill child CRUD endpoints."""
+    # Reading demo_candidate is allowed
     list_resp = api_client.get("/api/v1/profiles/demo_candidate/skills")
     assert list_resp.status_code == 200
     assert len(list_resp.json()) == 37
 
-    # Add new skill
+    # Mutating demo_candidate directly is rejected with 403 Forbidden
     new_skill = {
         "category": "languages",
         "skill_name": "Rust",
         "display_order": 99,
     }
-    add_resp = api_client.post("/api/v1/profiles/demo_candidate/skills", json=new_skill)
+    demo_add = api_client.post("/api/v1/profiles/demo_candidate/skills", json=new_skill)
+    assert demo_add.status_code == 403
+
+    # Add new skill to owned sujal profile
+    add_resp = api_client.post("/api/v1/profiles/sujal/skills", json=new_skill)
     assert add_resp.status_code == 201
     skill_id = add_resp.json()["id"]
 
     # Delete skill
-    del_resp = api_client.delete(f"/api/v1/profiles/demo_candidate/skills/{skill_id}")
+    del_resp = api_client.delete(f"/api/v1/profiles/sujal/skills/{skill_id}")
     assert del_resp.status_code == 204
 
 
@@ -312,9 +321,9 @@ def test_cross_profile_resource_access_rejected(api_client: TestClient):
     assert cross_access.status_code == 404
     assert "not found for this profile" in cross_access.json()["detail"].lower()
 
-    # Attempt to delete Sujal's education under demo_candidate
+    # Attempt to delete Sujal's education under demo_candidate (rejected as demo is read-only)
     cross_del = api_client.delete(f"/api/v1/profiles/demo_candidate/education/{sujal_edu_id}")
-    assert cross_del.status_code == 404
+    assert cross_del.status_code == 403
 
 
 def test_certifications_achievements_and_pd_crud(api_client: TestClient):

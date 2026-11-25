@@ -1,19 +1,18 @@
 # Production Environment Configuration Template
 
-This document provides a sanitized configuration template for deploying the AI Resume Builder Platform in production.
+This document provides a sanitized configuration template for deploying the AI Resume Builder Platform on **Render (Backend)**, **Vercel (Frontend)**, and **Supabase (PostgreSQL + Auth)**.
 
 > [!CAUTION]
-> **NEVER** commit real API keys, tokens, or database passwords to version control. This template contains placeholder values only. Copy these settings to your secure server environment variables or deployment manager (e.g. Doppler, AWS Secrets Manager, or server `.env`).
+> **NEVER** commit real API keys, tokens, or database passwords to version control. Configure these values only in Render / Vercel dashboard environment settings.
 
 ---
 
-## Environment Variables Specification
+## 1. Render Backend Environment Variables
 
 ```ini
 # ==============================================================================
-# 1. Core Application & Server Runtime
+# Core Application & Server Runtime
 # ==============================================================================
-# Set to 'production' to enforce fail-closed security, disable Swagger docs, and enforce HSTS
 APP_ENV=production
 APP_NAME=AI Resume Builder Platform API
 DEBUG=false
@@ -21,88 +20,74 @@ HOST=0.0.0.0
 PORT=8000
 
 # ==============================================================================
-# 2. CORS & Network Security
+# CORS & Network Security
 # ==============================================================================
-# Comma-separated list of allowed origins. In production, never use wildcards (*)
-CORS_ORIGINS=https://resume.yourdomain.com,https://app.yourdomain.com
-
-# ==============================================================================
-# 3. PostgreSQL Database Connection
-# ==============================================================================
-# Format: postgresql+psycopg://<user>:<password>@<host>:<port>/<database>
-POSTGRES_USER=resume_app_user
-POSTGRES_PASSWORD=generate_a_secure_random_password_here
-POSTGRES_HOST=db
-POSTGRES_PORT=5432
-POSTGRES_DB=resume_builder_prod
-
-# Full SQLAlchemy database connection string
-DATABASE_URL=postgresql+psycopg://resume_app_user:generate_a_secure_random_password_here@db:5432/resume_builder_prod
+# Exact Vercel production frontend origin(s), no wildcards (*)
+CORS_ORIGINS=https://your-app.vercel.app
 
 # ==============================================================================
-# 4. Zero-Trust Cloudflare Access (Mandatory in Production)
+# Supabase PostgreSQL Connection
 # ==============================================================================
-# Found in Cloudflare Zero Trust Dashboard -> Settings -> Custom Pages / Team Domain
-CF_ACCESS_TEAM_NAME=your-team-name
+# Full SQLAlchemy connection string (use Supabase PostgreSQL credentials)
+DATABASE_URL=postgresql+psycopg://postgres.<project-ref>:<db-password>@aws-0-<region>.pooler.supabase.com:5432/postgres
 
-# Found in Cloudflare Zero Trust Dashboard -> Access -> Applications -> View AUD
-CF_ACCESS_AUD=your_application_audience_tag_hex_string
-
-# Enforces cryptographic verification on all requests to protected API routes
-REQUIRE_CF_ACCESS=true
-
-# Strictly disables developer bypasses in production
+# ==============================================================================
+# Supabase Auth & Access Control (Fail-Closed in Production)
+# ==============================================================================
+SUPABASE_URL=https://<project-ref>.supabase.co
+SUPABASE_JWT_AUD=authenticated
+REQUIRE_AUTH=true
 ALLOW_DEV_AUTH_BYPASS=false
 
-# Comma-separated list of verified emails permitted to access the application
-# (Empty = all authenticated Cloudflare Access users in your team)
-ALLOWED_EMAILS=your.email@example.com
+# Signup & Access Gate:
+# - Operator-only / Restricted Beta: ALLOW_PUBLIC_SIGNUP=false and ALLOWED_EMAILS=operator@example.com
+# - Public SaaS (only after explicit approval): ALLOW_PUBLIC_SIGNUP=true and ALLOWED_EMAILS=
+ALLOW_PUBLIC_SIGNUP=false
+ALLOWED_EMAILS=operator@example.com
 
 # ==============================================================================
-# 5. Persistent Storage Configuration
+# Storage & Rate Limiting (Process-Local Sliding Window)
 # ==============================================================================
-# local: files stored on persistent server volume
-# supabase: future object storage integration
 STORAGE_BACKEND=local
-
-# ==============================================================================
-# 6. Rate Limiting & Resource Protection
-# ==============================================================================
-# Maximum allowed requests per 60-second sliding window per client
 RATE_LIMIT_GENERATION_PER_MINUTE=10
 RATE_LIMIT_ANALYSIS_PER_MINUTE=15
 RATE_LIMIT_EXPORT_PER_MINUTE=20
 
 # ==============================================================================
-# 7. Multi-Provider AI Credentials (Backend Only)
+# Multi-Provider AI Credentials (Backend Only)
 # ==============================================================================
-# Google Gemini API Key
 GEMINI_API_KEY=your_gemini_api_key_here
-
-# Groq Cloud API Key
 GROQ_API_KEY=your_groq_api_key_here
-
-# Cohere API Key
 COHERE_API_KEY=your_cohere_api_key_here
-
-# OpenRouter API Key
 OPENROUTER_API_KEY=your_openrouter_api_key_here
-
-# Cloudflare Workers AI Token & Account ID
 CLOUDFLARE_API_TOKEN=your_cloudflare_api_token_here
 CLOUDFLARE_ACCOUNT_ID=your_cloudflare_account_id_here
 ```
 
 ---
 
-## Validation Checklist Before Deployment
+## 2. Vercel Frontend Environment Variables
 
-- [ ] `APP_ENV` is set to `production`.
-- [ ] `DEBUG` is set to `false`.
-- [ ] `REQUIRE_CF_ACCESS` is set to `true`.
-- [ ] `ALLOW_DEV_AUTH_BYPASS` is set to `false`.
-- [ ] `CF_ACCESS_TEAM_NAME` matches your actual Cloudflare Access organization subdomain.
-- [ ] `CF_ACCESS_AUD` matches the exact Application AUD tag from the Zero Trust portal.
-- [ ] `POSTGRES_PASSWORD` is a strong, cryptographically generated string (min 32 characters).
-- [ ] `CORS_ORIGINS` contains only your production frontend domain (HTTPS).
-- [ ] File permissions on persistent `storage/` volume permit write access by the backend process.
+```ini
+# Backend Render API URL (no trailing slash)
+VITE_API_BASE_URL=https://your-backend.onrender.com
+
+# Public Supabase Project URL and Anon Key (NEVER put service_role key in Vercel!)
+VITE_SUPABASE_URL=https://<project-ref>.supabase.co
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key_here
+
+# Keep false until public signup is explicitly approved
+VITE_ALLOW_PUBLIC_SIGNUP=false
+```
+
+---
+
+## 3. Pre-Deployment Validation Checklist
+
+- [ ] `APP_ENV=production`, `DEBUG=false`, `REQUIRE_AUTH=true`, `ALLOW_DEV_AUTH_BYPASS=false`.
+- [ ] `ALLOW_PUBLIC_SIGNUP=false` and `ALLOWED_EMAILS` set to authorized email(s) for initial rollout.
+- [ ] `VITE_ALLOW_PUBLIC_SIGNUP=false` on Vercel.
+- [ ] `SUPABASE_URL` and `CORS_ORIGINS` match exact production domains (HTTPS).
+- [ ] Render Health Check Path is set to `/api/v1/health`.
+- [ ] Supabase Dashboard → Auth → Email → **Confirm email** is enabled.
+- [ ] Supabase Dashboard → Auth → URL Configuration includes `https://your-app.vercel.app/auth/callback`.

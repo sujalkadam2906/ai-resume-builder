@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List
-from sqlalchemy import DateTime, func, JSON
+from sqlalchemy import Column, DateTime, func, JSON, Table, Uuid
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -14,6 +14,15 @@ JSONVariant = JSON().with_variant(JSONB(), "postgresql")
 class Base(DeclarativeBase):
     """Base class for all SQLAlchemy 2.0 ORM models."""
     pass
+
+
+# Supabase Auth users table stub in 'auth' schema for SQLAlchemy foreign-key resolution
+auth_users = Table(
+    "users",
+    Base.metadata,
+    Column("id", Uuid, primary_key=True),
+    schema="auth",
+)
 
 
 class TimestampMixin:

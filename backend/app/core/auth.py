@@ -12,14 +12,18 @@ Provides:
 import logging
 import time
 from typing import Any, Dict, List, Optional
+import uuid
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import httpx
 import jwt
 from jwt.algorithms import RSAAlgorithm, ECAlgorithm
 from pydantic import BaseModel, Field
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
 from backend.app.config import settings
+from backend.app.database.session import get_db
 
 logger = logging.getLogger("resume_builder.security.auth")
 
@@ -34,6 +38,15 @@ class AuthenticatedUser(BaseModel):
     is_authenticated: bool = True
     roles: List[str] = Field(default_factory=lambda: ["user"])
     claims: Dict[str, Any] = Field(default_factory=dict)
+
+    @property
+    def user_uuid(self) -> uuid.UUID:
+        """Returns the user_id as a valid UUID. If user_id is not already a valid UUID string,
+        derives a deterministic UUID from the user_id string to guarantee valid database UUID comparisons."""
+        try:
+            return uuid.UUID(self.user_id)
+        except (ValueError, AttributeError):
+            return uuid.uuid5(uuid.NAMESPACE_DNS, str(self.user_id))
 
 
 # Supported asymmetric signing algorithms
@@ -246,12 +259,44 @@ class SupabaseAuthValidator:
 
         user_id = str(payload.get("sub", ""))
 
-        # 5. Authorization: Check allowed emails whitelist if configured
-        if settings.allowed_emails and email.lower() not in settings.allowed_emails:
-            logger.warning(f"Access denied for authenticated user '{email}': not in ALLOWED_EMAILS.")
+        # 5. Email verification enforcement (token claims if present)
+        # Standard Supabase access tokens do NOT include 'email_confirmed_at' or
+        # top-level 'email_verified' unless a Custom Access Token Hook is enabled.
+        # - If either claim IS present and falsy, reject immediately with 403.
+        # - When absent from the JWT, get_current_user() verifies auth.users.email_confirmed_at
+        #   on PostgreSQL as server-side defense-in-depth alongside Supabase's "Confirm email".
+        if "email_confirmed_at" in payload and not payload.get("email_confirmed_at"):
+            logger.warning(f"Access denied for user '{email}': email_confirmed_at is null/empty.")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"User '{email}' is authenticated but not authorized to access this platform.",
+                detail="Email verification required. Please check your inbox and verify your email before accessing this platform.",
+            )
+        if "email_verified" in payload and payload.get("email_verified") is not True:
+            logger.warning(f"Access denied for user '{email}': email_verified is false.")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Email verification required. Please check your inbox and verify your email before accessing this platform.",
+            )
+
+        # 6. Authorization: Check allowed emails whitelist if configured
+        # When ALLOWED_EMAILS is populated, only those emails are permitted.
+        # When ALLOWED_EMAILS is empty AND ALLOW_PUBLIC_SIGNUP is False,
+        # no one is authorized (fail-closed).
+        # When ALLOWED_EMAILS is empty AND ALLOW_PUBLIC_SIGNUP is True,
+        # all verified users are permitted.
+        if settings.allowed_emails:
+            if email.lower() not in settings.allowed_emails:
+                logger.warning(f"Access denied for authenticated user '{email}': not in ALLOWED_EMAILS.")
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"User '{email}' is authenticated but not authorized to access this platform.",
+                )
+        elif not settings.allow_public_signup:
+            # No whitelist AND signup not enabled = fail-closed
+            logger.warning(f"Access denied for '{email}': ALLOWED_EMAILS empty and ALLOW_PUBLIC_SIGNUP=false.")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Platform access is currently restricted. Contact the administrator.",
             )
 
         user_metadata = payload.get("user_metadata") or {}
@@ -273,9 +318,47 @@ CloudflareAccessValidator = SupabaseAuthValidator
 access_validator = auth_validator
 
 
+def _verify_email_confirmed_in_db(db: Session, user: AuthenticatedUser) -> None:
+    """Verify auth.users.email_confirmed_at on PostgreSQL when not already proven by JWT claims.
+
+    Fail-closed:
+    - If the user is missing from auth.users -> HTTP 403 Forbidden
+    - If email_confirmed_at is NULL -> HTTP 403 Forbidden
+    - If database query encounters an unexpected error -> fails closed with HTTP 403 / 500
+    - Sensitive columns from auth.users are never selected or logged.
+    """
+    claims = user.claims or {}
+    if claims.get("email_confirmed_at") or claims.get("email_verified") is True:
+        return
+
+    bind = db.get_bind()
+    if bind is None or bind.dialect.name != "postgresql":
+        return
+
+    try:
+        row = db.execute(
+            text("SELECT email_confirmed_at FROM auth.users WHERE id = :uid"),
+            {"uid": user.user_uuid},
+        ).fetchone()
+    except Exception as exc:
+        logger.error(f"Error querying auth.users verification status for uid '{user.user_uuid}': {exc}")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Unable to verify user confirmation status. Access denied.",
+        )
+
+    if not row or row[0] is None:
+        logger.warning(f"Access denied for user_id '{user.user_uuid}': auth.users.email_confirmed_at is null or record missing.")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Email verification required. Please check your inbox and verify your email before accessing this platform.",
+        )
+
+
 def get_current_user(
     request: Request,
     bearer_credentials: Optional[HTTPAuthorizationCredentials] = Depends(http_bearer_scheme),
+    db: Session = Depends(get_db),
 ) -> AuthenticatedUser:
     """
     FastAPI dependency to authenticate requests.
@@ -326,5 +409,7 @@ def get_current_user(
             headers={"WWW-Authenticate": 'Bearer error="missing_token"'},
         )
 
-    # 2. Token is present: verify cryptographically
-    return auth_validator.verify_jwt(token)
+    # 2. Token is present: verify cryptographically and enforce DB email confirmation
+    user = auth_validator.verify_jwt(token)
+    _verify_email_confirmed_in_db(db, user)
+    return user

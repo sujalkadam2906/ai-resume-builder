@@ -11,7 +11,7 @@ const STORAGE_KEY = "resume_builder_active_profile";
 
 export const ActiveProfileProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activeProfileSlug, setActiveProfileSlugState] = useState<string>(() => {
-    return localStorage.getItem(STORAGE_KEY) || "sujal";
+    return localStorage.getItem(STORAGE_KEY) || "demo_candidate";
   });
 
   const setActiveProfileSlug = (slug: string) => {

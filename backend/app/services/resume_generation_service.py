@@ -25,19 +25,23 @@ class ResumeGenerationService:
     def generate_draft(
         session: Session,
         request: ResumeGenerateRequest,
+        user_id: Optional[uuid.UUID] = None,
     ) -> DBResume:
-        """Execute full draft resume generation workflow."""
+        """Execute full draft resume generation workflow scoped to user ownership."""
         # 1. Resolve and validate candidate profile
-        candidate = ProfileService.get_profile_by_id_or_slug(session, request.profile_id)
+        candidate = ProfileService.get_profile_by_id_or_slug(session, request.profile_id, user_id=user_id)
         if not candidate:
             raise ValueError(f"Candidate profile '{request.profile_id}' not found.")
         if (candidate.config_rules or {}).get("is_archived", False):
             raise ValueError(f"Candidate profile '{candidate.slug}' is archived. Restore before generating resumes.")
 
         # 2. Resolve and validate job description
-        jd = session.execute(
-            select(DBJobDescription).filter_by(id=request.job_description_id)
-        ).scalar_one_or_none()
+        jd_stmt = select(DBJobDescription).filter_by(id=request.job_description_id)
+        if user_id is not None:
+            jd_stmt = jd_stmt.filter(
+                (DBJobDescription.user_id == user_id) | (DBJobDescription.user_id.is_(None))
+            )
+        jd = session.execute(jd_stmt).scalar_one_or_none()
         if not jd:
             raise ValueError(f"Job Description '{request.job_description_id}' not found.")
 
@@ -125,6 +129,7 @@ class ResumeGenerationService:
         resume_id = uuid.uuid4()
         resume = DBResume(
             id=resume_id,
+            user_id=user_id,
             profile_id=candidate.id,
             job_description_id=jd.id,
             resume_title=title,

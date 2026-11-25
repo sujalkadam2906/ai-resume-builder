@@ -17,6 +17,12 @@ class JobDescription(Base, TimestampMixin):
     __tablename__ = "job_descriptions"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid,
+        ForeignKey("auth.users.id", ondelete="CASCADE"),
+        index=True,
+        nullable=True,
+    )
     profile_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         Uuid,
         ForeignKey("candidate_profiles.id", ondelete="CASCADE"),
@@ -43,6 +49,12 @@ class Resume(Base, TimestampMixin):
     __tablename__ = "resumes"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid,
+        ForeignKey("auth.users.id", ondelete="CASCADE"),
+        index=True,
+        nullable=True,
+    )
     profile_id: Mapped[uuid.UUID] = mapped_column(
         Uuid,
         ForeignKey("candidate_profiles.id", ondelete="CASCADE"),
@@ -127,6 +139,12 @@ class FileAsset(Base, TimestampMixin):
     __tablename__ = "file_assets"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid,
+        ForeignKey("auth.users.id", ondelete="CASCADE"),
+        index=True,
+        nullable=True,
+    )
     profile_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         Uuid,
         ForeignKey("candidate_profiles.id", ondelete="CASCADE"),

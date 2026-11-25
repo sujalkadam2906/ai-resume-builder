@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { Lock, Mail, ArrowRight, AlertCircle, ShieldCheck } from "lucide-react";
@@ -29,7 +29,11 @@ export const LoginPage: React.FC = () => {
       });
 
       if (error) {
-        setErrorMessage(error.message);
+        if (error.message.toLowerCase().includes("email not confirmed")) {
+          setErrorMessage("Please check your email and click the confirmation link before signing in.");
+        } else {
+          setErrorMessage(error.message);
+        }
       } else {
         navigate("/", { replace: true });
       }
@@ -90,12 +94,20 @@ export const LoginPage: React.FC = () => {
             </div>
 
             <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-semibold text-slate-700 dark:text-slate-300"
-              >
-                Password
-              </label>
+              <div className="flex items-center justify-between">
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-semibold text-slate-700 dark:text-slate-300"
+                >
+                  Password
+                </label>
+                <Link
+                  to="/forgot-password"
+                  className="text-xs font-medium text-primary-600 dark:text-primary-400 hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <div className="mt-1 relative rounded-lg shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                   <Lock className="h-5 h-5" />
@@ -132,11 +144,19 @@ export const LoginPage: React.FC = () => {
             </div>
           </form>
 
-          <div className="mt-6 border-t border-slate-200 dark:border-slate-800 pt-4 text-center">
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Access is restricted to authorized operators. Self-registration is disabled.
-            </p>
-          </div>
+          {import.meta.env.VITE_ALLOW_PUBLIC_SIGNUP === "true" && (
+            <div className="mt-6 border-t border-slate-200 dark:border-slate-800 pt-4 text-center">
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                Don't have an account?{" "}
+                <Link
+                  to="/signup"
+                  className="font-semibold text-primary-600 dark:text-primary-400 hover:underline"
+                >
+                  Sign Up
+                </Link>
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

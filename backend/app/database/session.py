@@ -2,7 +2,7 @@
 
 import logging
 from typing import Generator, Tuple
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import sessionmaker, Session
 from backend.app.config import settings
 
@@ -31,10 +31,21 @@ def create_db_engine(db_url: str):
     normalized_url = get_normalized_database_url(db_url)
     
     if normalized_url.startswith("sqlite"):
-        return create_engine(
+        sqlite_engine = create_engine(
             normalized_url,
             connect_args={"check_same_thread": False},
         )
+        @event.listens_for(sqlite_engine, "connect")
+        def _attach_sqlite_auth(dbapi_con, con_record):
+            if type(dbapi_con).__module__ == "sqlite3":
+                cursor = dbapi_con.cursor()
+                try:
+                    cursor.execute("ATTACH DATABASE ':memory:' AS auth")
+                except Exception:
+                    pass
+                finally:
+                    cursor.close()
+        return sqlite_engine
     
     return create_engine(
         normalized_url,

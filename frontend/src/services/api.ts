@@ -143,16 +143,22 @@ export const profilesApi = {
     }),
 
   archive: (profileIdOrSlug: string) =>
-    request<{ status: string; id: string; slug: string; is_archived: boolean }>(
-      `/profiles/${profileIdOrSlug}/archive`,
-      { method: "POST" }
+    request<{ status: string; profile_id: string; slug: string; message: string }>(
+      `/profiles/${profileIdOrSlug}`,
+      { method: "DELETE" }
     ),
 
   restore: (profileIdOrSlug: string) =>
-    request<{ status: string; id: string; slug: string; is_archived: boolean }>(
+    request<{ status: string; profile_id: string; slug: string; message: string }>(
       `/profiles/${profileIdOrSlug}/restore`,
       { method: "POST" }
     ),
+
+  clone: (profileIdOrSlug: string, data?: { new_slug?: string; new_name?: string }) =>
+    request<CandidateProfileDetail>(`/profiles/${profileIdOrSlug}/clone`, {
+      method: "POST",
+      body: JSON.stringify(data || {}),
+    }),
 
   // Child: Education
   listEducation: (profileId: string) =>

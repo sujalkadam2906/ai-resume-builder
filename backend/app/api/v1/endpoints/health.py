@@ -68,8 +68,7 @@ def readiness_probe() -> JSONResponse:
     db_ok, db_msg = check_db_connection()
     checks["database"] = {
         "status": "ok" if db_ok else "error",
-        "detail": db_msg,
-        "target": settings.database_url.split("@")[-1] if "@" in settings.database_url else "configured",
+        "detail": db_msg if db_ok else "Database connectivity check failed.",
     }
     if not db_ok:
         is_ready = False

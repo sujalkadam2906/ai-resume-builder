@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Menu,
   X,
@@ -13,6 +13,7 @@ import {
   UserCheck,
   Shield,
   Plus,
+  Copy,
   LogOut,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -33,6 +34,7 @@ export const Header: React.FC<HeaderProps> = ({
   const { theme, effectiveTheme, setTheme } = useTheme();
   const { activeProfileSlug, setActiveProfileSlug } = useActiveProfile();
   const { user, signOut } = useAuth();
+  const queryClient = useQueryClient();
 
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -43,17 +45,37 @@ export const Header: React.FC<HeaderProps> = ({
     queryFn: () => profilesApi.list(1, 100, false),
   });
 
+  const cloneMutation = useMutation({
+    mutationFn: (slug: string) => profilesApi.clone(slug),
+    onSuccess: (newProfile) => {
+      queryClient.invalidateQueries({ queryKey: ["profiles-list"] });
+      setActiveProfileSlug(newProfile.slug);
+      setIsProfileDropdownOpen(false);
+    },
+    onError: (err: any) => alert(err.message),
+  });
+
   const profiles = profilesData?.items || [];
-  const activeProfile = profiles.find((p) => p.slug === activeProfileSlug) || {
-    id: "sujal",
-    slug: "sujal",
-    full_name: "Sujal Sunil Kadam",
-    display_name: "SUJAL KADAM",
-    is_synthetic: false,
-    is_archived: false,
-    created_at: "",
-    updated_at: "",
-  };
+  const activeProfile =
+    profiles.find((p) => p.slug === activeProfileSlug) ||
+    profiles.find((p) => !p.is_synthetic) ||
+    profiles[0] || {
+      id: "demo",
+      slug: "demo_candidate",
+      full_name: "Demo Candidate",
+      display_name: "DEMO CANDIDATE",
+      is_synthetic: true,
+      is_archived: false,
+      created_at: "",
+      updated_at: "",
+    };
+
+  useEffect(() => {
+    if (profiles.length > 0 && !profiles.some((p) => p.slug === activeProfileSlug)) {
+      const preferred = profiles.find((p) => !p.is_synthetic) || profiles[0];
+      setActiveProfileSlug(preferred.slug);
+    }
+  }, [profiles, activeProfileSlug, setActiveProfileSlug]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -212,9 +234,9 @@ export const Header: React.FC<HeaderProps> = ({
                           <div className="text-[10px] text-text-muted flex items-center gap-1">
                             <span>{p.slug}</span>
                             {p.is_synthetic ? (
-                              <span className="text-[9px] px-1 rounded bg-purple-500/10 text-purple-400">Demo</span>
+                              <span className="text-[9px] px-1 rounded bg-purple-500/10 text-purple-400 font-mono">Template</span>
                             ) : (
-                              <span className="text-[9px] px-1 rounded bg-emerald-500/10 text-emerald-400">Verified</span>
+                              <span className="text-[9px] px-1 rounded bg-emerald-500/10 text-emerald-400 font-mono">Personal</span>
                             )}
                           </div>
                         </div>
@@ -224,6 +246,20 @@ export const Header: React.FC<HeaderProps> = ({
                   );
                 })}
               </div>
+
+              {/* Quick Clone Template Action if active profile is a template */}
+              {activeProfile.is_synthetic && (
+                <div className="p-1 border-t border-surface-border">
+                  <button
+                    onClick={() => cloneMutation.mutate(activeProfile.slug)}
+                    disabled={cloneMutation.isPending}
+                    className="w-full flex items-center justify-center gap-2 px-2.5 py-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 text-xs font-medium transition-colors"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>{cloneMutation.isPending ? "Cloning..." : "Clone Template to Workspace"}</span>
+                  </button>
+                </div>
+              )}
 
               {/* User Account / Logout section */}
               {user && (

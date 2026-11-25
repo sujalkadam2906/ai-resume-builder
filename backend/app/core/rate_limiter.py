@@ -2,8 +2,10 @@
 
 import collections
 import time
-from typing import Callable, Deque, Dict
-from fastapi import HTTPException, Request, status
+from typing import Callable, Deque, Dict, Optional
+from fastapi import Depends, HTTPException, Request, status
+
+from backend.app.core.auth import AuthenticatedUser, get_current_user
 
 
 class SlidingWindowRateLimiter:
@@ -23,9 +25,8 @@ class SlidingWindowRateLimiter:
         client_host = request.client.host if request.client else "unknown"
         return client_host
 
-    def check(self, request: Request) -> None:
-        """Evaluate rate limit; raises HTTP 429 if exceeded."""
-        key = self._get_client_key(request)
+    def check_key(self, key: str) -> None:
+        """Evaluate rate limit for a specific key; raises HTTP 429 if exceeded."""
         now = time.time()
         window_start = now - self.window_seconds
 
@@ -46,16 +47,41 @@ class SlidingWindowRateLimiter:
         # Record this request
         queue.append(now)
 
+    def check(self, request: Request) -> None:
+        """Evaluate rate limit for request IP; raises HTTP 429 if exceeded."""
+        key = self._get_client_key(request)
+        self.check_key(key)
+
     def reset(self) -> None:
         """Clear all rate limit records (used in tests)."""
         self._records.clear()
 
 
 def rate_limit(max_requests: int = 60, window_seconds: int = 60) -> Callable:
-    """FastAPI dependency factory for rate limiting an endpoint."""
+    """FastAPI dependency factory for IP-based rate limiting an endpoint."""
     limiter = SlidingWindowRateLimiter(max_requests=max_requests, window_seconds=window_seconds)
 
     def dependency(request: Request) -> None:
         limiter.check(request)
+
+    return dependency
+
+
+def user_rate_limit(max_requests: int = 10, window_seconds: int = 60) -> Callable:
+    """FastAPI dependency factory for per-user and per-IP rate limiting of expensive operations."""
+    user_limiter = SlidingWindowRateLimiter(max_requests=max_requests, window_seconds=window_seconds)
+    ip_limiter = SlidingWindowRateLimiter(max_requests=max_requests * 2, window_seconds=window_seconds)
+
+    def dependency(
+        request: Request,
+        current_user: AuthenticatedUser = Depends(get_current_user),
+    ) -> None:
+        # 1. Enforce per-user quota
+        user_key = f"user:{current_user.user_id}"
+        user_limiter.check_key(user_key)
+
+        # 2. Enforce per-IP fallback ceiling
+        ip_key = f"ip:{ip_limiter._get_client_key(request)}"
+        ip_limiter.check_key(ip_key)
 
     return dependency

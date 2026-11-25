@@ -99,6 +99,7 @@ class ResumeExportService:
         if not asset:
             asset = FileAsset(
                 id=uuid.uuid4(),
+                user_id=resume.user_id,
                 profile_id=resume.profile_id,
                 file_name=filename,
                 storage_key=storage_rel_key,
@@ -170,6 +171,7 @@ class ResumeExportService:
         if not asset:
             asset = FileAsset(
                 id=uuid.uuid4(),
+                user_id=resume.user_id,
                 profile_id=resume.profile_id,
                 file_name=filename,
                 storage_key=storage_rel_key,

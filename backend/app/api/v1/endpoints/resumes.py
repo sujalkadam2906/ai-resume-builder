@@ -8,7 +8,8 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from backend.app.config import settings
-from backend.app.core.rate_limiter import rate_limit
+from backend.app.core.auth import AuthenticatedUser, get_current_user
+from backend.app.core.rate_limiter import user_rate_limit
 from backend.app.database.session import get_db
 from backend.app.schemas.resume import (
     ATSEvaluationResponse,
@@ -27,10 +28,15 @@ from backend.app.services.resume_generation_service import ResumeGenerationServi
 router = APIRouter(prefix="/resumes", tags=["Resumes"])
 
 
-def _resolve_resume_or_404(session: Session, resume_id: uuid.UUID):
-    """Helper to resolve Resume by UUID or raise 404."""
+def _resolve_resume_or_404(session: Session, resume_id: uuid.UUID, current_user: AuthenticatedUser):
+    """Helper to resolve Resume by UUID and user ownership or raise 404."""
     resume = ResumeApprovalService.get_resume(session, resume_id)
-    if not resume:
+    is_owner = resume and ((resume.user_id == current_user.user_uuid) or (
+        not settings.is_production
+        and resume.user_id is None
+        and current_user.user_uuid == uuid.uuid5(uuid.NAMESPACE_DNS, "dev-local-user")
+    ))
+    if not is_owner:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Resume '{resume_id}' not found.",
@@ -48,14 +54,15 @@ def _resolve_resume_or_404(session: Session, resume_id: uuid.UUID):
     status_code=status.HTTP_201_CREATED,
     summary="Generate tailored resume draft",
     description="Generate a new draft resume tailored for a target JD, selecting relevant projects and skills.",
-    dependencies=[Depends(rate_limit(max_requests=settings.rate_limit_generation_per_minute, window_seconds=60))],
+    dependencies=[Depends(user_rate_limit(max_requests=settings.rate_limit_generation_per_minute, window_seconds=60))],
 )
 def generate_resume(
     request: ResumeGenerateRequest,
+    current_user: AuthenticatedUser = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     try:
-        resume = ResumeGenerationService.generate_draft(db, request)
+        resume = ResumeGenerationService.generate_draft(db, request, user_id=current_user.user_uuid)
         return resume
     except ValueError as exc:
         err_msg = str(exc)
@@ -70,16 +77,24 @@ def generate_resume(
     "",
     response_model=ResumePaginationResponse,
     summary="List resumes",
-    description="Retrieve paginated list of resumes with optional profile or status filters.",
+    description="Retrieve paginated list of resumes owned by the authenticated user with optional profile or status filters.",
 )
 def list_resumes(
     profile_id: Optional[str] = Query(None, description="Filter by candidate profile slug or UUID"),
     status: Optional[str] = Query(None, description="Filter by status e.g. 'draft' or 'approved'"),
     page: int = Query(1, ge=1, description="Page number"),
     size: int = Query(20, ge=1, le=100, description="Items per page"),
+    current_user: AuthenticatedUser = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    items, total = ResumeApprovalService.list_resumes(db, profile_id=profile_id, status_filter=status, page=page, size=size)
+    items, total = ResumeApprovalService.list_resumes(
+        db,
+        profile_id=profile_id,
+        user_id=current_user.user_uuid,
+        status_filter=status,
+        page=page,
+        size=size,
+    )
     pages = math.ceil(total / size) if size > 0 else 1
 
     return ResumePaginationResponse(
@@ -99,9 +114,10 @@ def list_resumes(
 )
 def get_resume(
     resume_id: uuid.UUID,
+    current_user: AuthenticatedUser = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return _resolve_resume_or_404(db, resume_id)
+    return _resolve_resume_or_404(db, resume_id, current_user)
 
 
 @router.patch(
@@ -113,9 +129,10 @@ def get_resume(
 def update_resume(
     resume_id: uuid.UUID,
     data: ResumeUpdateRequest,
+    current_user: AuthenticatedUser = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    resume = _resolve_resume_or_404(db, resume_id)
+    resume = _resolve_resume_or_404(db, resume_id, current_user)
     try:
         updated = ResumeApprovalService.update_resume(db, resume, data)
         return updated
@@ -131,9 +148,10 @@ def update_resume(
 )
 def approve_resume(
     resume_id: uuid.UUID,
+    current_user: AuthenticatedUser = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    resume = _resolve_resume_or_404(db, resume_id)
+    resume = _resolve_resume_or_404(db, resume_id, current_user)
     try:
         return ResumeApprovalService.approve_resume(db, resume)
     except ValueError as exc:
@@ -152,9 +170,10 @@ def approve_resume(
 )
 def list_resume_versions(
     resume_id: uuid.UUID,
+    current_user: AuthenticatedUser = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    _resolve_resume_or_404(db, resume_id)
+    _resolve_resume_or_404(db, resume_id, current_user)
     return ResumeApprovalService.list_versions(db, resume_id)
 
 
@@ -167,9 +186,10 @@ def list_resume_versions(
 def get_resume_version(
     resume_id: uuid.UUID,
     version_number: int,
+    current_user: AuthenticatedUser = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    _resolve_resume_or_404(db, resume_id)
+    _resolve_resume_or_404(db, resume_id, current_user)
     ver = ResumeApprovalService.get_version(db, resume_id, version_number)
     if not ver:
         raise HTTPException(
@@ -187,13 +207,14 @@ def get_resume_version(
     "/{resume_id}/export/pdf",
     summary="Export resume to PDF",
     description="Download guaranteed one-page ReportLab PDF. Requires approved resume status.",
-    dependencies=[Depends(rate_limit(max_requests=settings.rate_limit_export_per_minute, window_seconds=60))],
+    dependencies=[Depends(user_rate_limit(max_requests=settings.rate_limit_export_per_minute, window_seconds=60))],
 )
 def export_pdf(
     resume_id: uuid.UUID,
+    current_user: AuthenticatedUser = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    resume = _resolve_resume_or_404(db, resume_id)
+    resume = _resolve_resume_or_404(db, resume_id, current_user)
     try:
         pdf_path = ResumeExportService.export_pdf(db, resume, enforce_approved=True)
         return FileResponse(
@@ -211,13 +232,14 @@ def export_pdf(
     "/{resume_id}/export/docx",
     summary="Export resume to DOCX",
     description="Download python-docx DOCX matching design system. Requires approved resume status.",
-    dependencies=[Depends(rate_limit(max_requests=settings.rate_limit_export_per_minute, window_seconds=60))],
+    dependencies=[Depends(user_rate_limit(max_requests=settings.rate_limit_export_per_minute, window_seconds=60))],
 )
 def export_docx(
     resume_id: uuid.UUID,
+    current_user: AuthenticatedUser = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    resume = _resolve_resume_or_404(db, resume_id)
+    resume = _resolve_resume_or_404(db, resume_id, current_user)
     try:
         docx_path = ResumeExportService.export_docx(db, resume, enforce_approved=True)
         return FileResponse(
@@ -240,12 +262,14 @@ def export_docx(
     response_model=ATSEvaluationResponse,
     summary="Run ATS evaluation",
     description="Perform deterministic ATS evaluation (Format 30%, Relevance 50%, Quality 20%) and persist score.",
+    dependencies=[Depends(user_rate_limit(max_requests=settings.rate_limit_analysis_per_minute, window_seconds=60))],
 )
 def evaluate_resume(
     resume_id: uuid.UUID,
+    current_user: AuthenticatedUser = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    resume = _resolve_resume_or_404(db, resume_id)
+    resume = _resolve_resume_or_404(db, resume_id, current_user)
     try:
         return ATSEvaluationService.evaluate_resume(db, resume)
     except Exception as exc:
@@ -260,9 +284,10 @@ def evaluate_resume(
 )
 def list_evaluations(
     resume_id: uuid.UUID,
+    current_user: AuthenticatedUser = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    _resolve_resume_or_404(db, resume_id)
+    _resolve_resume_or_404(db, resume_id, current_user)
     records = ATSEvaluationService.list_evaluations(db, resume_id)
     return [
         ATSEvaluationResponse(

@@ -26,11 +26,12 @@ class JobDescriptionService:
     def create_job_description(
         session: Session,
         data: JobDescriptionCreate,
+        user_id: Optional[uuid.UUID] = None,
     ) -> DBJobDescription:
-        """Create and persist a new target job description."""
+        """Create and persist a new target job description scoped to user_id."""
         resolved_profile_id = None
         if data.profile_id:
-            profile = ProfileService.get_profile_by_id_or_slug(session, data.profile_id)
+            profile = ProfileService.get_profile_by_id_or_slug(session, data.profile_id, user_id=user_id)
             if not profile:
                 raise ValueError(f"Candidate profile '{data.profile_id}' not found.")
             resolved_profile_id = profile.id
@@ -42,6 +43,7 @@ class JobDescriptionService:
 
         jd = DBJobDescription(
             id=jd_id,
+            user_id=user_id,
             profile_id=resolved_profile_id,
             job_title=data.job_title,
             company_name=data.company_name,
@@ -56,41 +58,52 @@ class JobDescriptionService:
         return jd
 
     @staticmethod
-    def get_job_description(session: Session, jd_id: uuid.UUID) -> Optional[DBJobDescription]:
-        """Fetch job description by UUID."""
-        return session.execute(
-            select(DBJobDescription).filter_by(id=jd_id)
-        ).scalar_one_or_none()
+    def get_job_description(
+        session: Session,
+        jd_id: uuid.UUID,
+        user_id: Optional[uuid.UUID] = None,
+    ) -> Optional[DBJobDescription]:
+        """Fetch job description by UUID and optional user ownership."""
+        stmt = select(DBJobDescription).filter_by(id=jd_id)
+        if user_id is not None:
+            from backend.app.config import settings
+            dev_user_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, "dev-local-user")
+            if not settings.is_production and user_id == dev_user_uuid:
+                stmt = stmt.filter((DBJobDescription.user_id == user_id) | (DBJobDescription.user_id.is_(None)))
+            else:
+                stmt = stmt.filter(DBJobDescription.user_id == user_id)
+        return session.execute(stmt).scalar_one_or_none()
 
     @staticmethod
     def list_job_descriptions(
         session: Session,
         profile_id: Optional[str] = None,
+        user_id: Optional[uuid.UUID] = None,
         page: int = 1,
         size: int = 20,
     ) -> Tuple[List[DBJobDescription], int]:
-        """List job descriptions with optional profile filter and pagination."""
+        """List job descriptions scoped to user_id with optional profile filter and pagination."""
         stmt = select(DBJobDescription).order_by(desc(DBJobDescription.created_at))
 
+        if user_id is not None:
+            from backend.app.config import settings
+            dev_user_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, "dev-local-user")
+            if not settings.is_production and user_id == dev_user_uuid:
+                stmt = stmt.filter((DBJobDescription.user_id == user_id) | (DBJobDescription.user_id.is_(None)))
+            else:
+                stmt = stmt.filter(DBJobDescription.user_id == user_id)
+
         if profile_id:
-            profile = ProfileService.get_profile_by_id_or_slug(session, profile_id)
+            profile = ProfileService.get_profile_by_id_or_slug(session, profile_id, user_id=user_id)
             if profile:
                 stmt = stmt.filter(DBJobDescription.profile_id == profile.id)
             else:
                 return [], 0
 
-        total = session.execute(select(DBJobDescription)).scalars().all()
-        if profile_id:
-            all_items = session.execute(stmt).scalars().all()
-            total_count = len(all_items)
-            paginated = all_items[(page - 1) * size : page * size]
-            return paginated, total_count
-
-        total_count = len(total)
-        start = (page - 1) * size
-        stmt = stmt.offset(start).limit(size)
-        items = session.execute(stmt).scalars().all()
-        return items, total_count
+        all_items = session.execute(stmt).scalars().all()
+        total_count = len(all_items)
+        paginated = all_items[(page - 1) * size : page * size]
+        return paginated, total_count
 
     @staticmethod
     def update_job_description(

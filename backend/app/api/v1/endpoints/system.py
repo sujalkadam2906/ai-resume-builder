@@ -4,9 +4,10 @@ import os
 import platform
 import sys
 from typing import Any, Dict
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from backend.app.config import settings
+from backend.app.core.rate_limiter import user_rate_limit
 
 router = APIRouter(prefix="/system", tags=["System & Providers"])
 
@@ -24,7 +25,11 @@ def system_info() -> Dict[str, Any]:
     }
 
 
-@router.get("/providers", summary="AI Provider Status & Health")
+@router.get(
+    "/providers",
+    summary="AI Provider Status & Health",
+    dependencies=[Depends(user_rate_limit(max_requests=10, window_seconds=60))],
+)
 def ai_providers_status() -> Dict[str, Any]:
     """
     Invokes the core resume engine's ProviderManager to run non-invasive health checks

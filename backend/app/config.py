@@ -54,6 +54,11 @@ class WebSettings:
         raw_allowed = os.getenv("ALLOWED_EMAILS", "")
         self.allowed_emails: List[str] = [e.strip().lower() for e in raw_allowed.split(",") if e.strip()]
 
+        # Signup control: when False (default), new account creation via Supabase
+        # is blocked at the backend by ALLOWED_EMAILS enforcement.
+        # Set to True only after explicitly approving public registration.
+        self.allow_public_signup: bool = os.getenv("ALLOW_PUBLIC_SIGNUP", "false").lower() in ("true", "1", "yes")
+
         # Rate Limiting
         self.rate_limit_generation_per_minute: int = int(os.getenv("RATE_LIMIT_GENERATION_PER_MINUTE", "10"))
         self.rate_limit_analysis_per_minute: int = int(os.getenv("RATE_LIMIT_ANALYSIS_PER_MINUTE", "15"))
@@ -65,6 +70,17 @@ class WebSettings:
             self.debug = False
             self.allow_dev_auth_bypass = False
             self.require_auth = True
+            # Public signup must be explicitly enabled in production
+            if not self.allow_public_signup and not self.allowed_emails:
+                # Fail-closed: if signup is not explicitly enabled AND no emails
+                # are whitelisted, refuse to start in an open state.
+                # This prevents accidental "open to everyone" deployments.
+                import logging
+                logging.getLogger("resume_builder.config").warning(
+                    "ALLOW_PUBLIC_SIGNUP is False and ALLOWED_EMAILS is empty. "
+                    "No users will be authorized. Set ALLOWED_EMAILS to restrict "
+                    "access, or set ALLOW_PUBLIC_SIGNUP=true to allow all verified users."
+                )
 
     @property
     def is_production(self) -> bool:
