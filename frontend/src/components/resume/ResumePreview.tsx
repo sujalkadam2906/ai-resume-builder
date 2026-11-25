@@ -24,6 +24,22 @@ interface ResumePreviewProps {
   versionNumber?: number;
 }
 
+const formatExternalUrl = (url?: string, defaultDomain?: string): string => {
+  if (!url) return "";
+  const trimmed = url.trim();
+  if (!trimmed) return "";
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("mailto:")) {
+    return trimmed;
+  }
+  if (trimmed.startsWith("//")) {
+    return `https:${trimmed}`;
+  }
+  if (!trimmed.includes("/") && !trimmed.includes(".") && defaultDomain) {
+    return `https://${defaultDomain}/${trimmed}`;
+  }
+  return `https://${trimmed}`;
+};
+
 export const ResumePreview: React.FC<ResumePreviewProps> = ({
   manifest,
   scale: controlledScale,
@@ -137,7 +153,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
                   <>
                     <span>•</span>
                     <a
-                      href={links.linkedin.url}
+                      href={formatExternalUrl(links.linkedin.url, "linkedin.com/in")}
                       target="_blank"
                       rel="noreferrer"
                       className="text-blue-700 hover:underline inline-flex items-center gap-0.5"
@@ -150,7 +166,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
                   <>
                     <span>•</span>
                     <a
-                      href={links.github.url}
+                      href={formatExternalUrl(links.github.url, "github.com")}
                       target="_blank"
                       rel="noreferrer"
                       className="text-blue-700 hover:underline inline-flex items-center gap-0.5"
@@ -163,7 +179,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
                   <>
                     <span>•</span>
                     <a
-                      href={links.portfolio.url}
+                      href={formatExternalUrl(links.portfolio.url)}
                       target="_blank"
                       rel="noreferrer"
                       className="text-blue-700 hover:underline inline-flex items-center gap-0.5"
@@ -231,22 +247,50 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
                           )}
                         </div>
 
-                        {/* Project Links */}
-                        {proj.links && proj.links.length > 0 && (
-                          <div className="flex items-center gap-2 text-[10.5px]">
-                            {proj.links.map((link, lIdx) => (
-                              <a
-                                key={lIdx}
-                                href={link.url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-blue-700 hover:underline font-medium"
-                              >
-                                {link.label || "Link"}
-                              </a>
-                            ))}
-                          </div>
-                        )}
+                        {/* Project Links: Live Demo | GitHub */}
+                        {(() => {
+                          const validLinks = (proj.links || [])
+                            .map((l) => {
+                              const rawUrl = (l.url || "").trim();
+                              if (!rawUrl) return null;
+                              let label = (l.label || "").replace(/^\[|\]$/g, "").trim();
+                              const low = label.toLowerCase();
+                              if (["demo", "live", "live demo", "website", "app"].includes(low)) {
+                                label = "Live Demo";
+                              } else if (["github", "code", "repo", "repository"].includes(low)) {
+                                label = "GitHub";
+                              } else if (!label) {
+                                label = "Link";
+                              }
+                              return {
+                                label,
+                                url: formatExternalUrl(rawUrl),
+                              };
+                            })
+                            .filter((l): l is { label: string; url: string } => l !== null && Boolean(l.url));
+
+                          if (validLinks.length === 0) return null;
+
+                          return (
+                            <div className="flex items-center gap-1.5 text-[10.5px]">
+                              {validLinks.map((link, lIdx) => (
+                                <React.Fragment key={lIdx}>
+                                  {lIdx > 0 && (
+                                    <span className="text-slate-400 select-none">|</span>
+                                  )}
+                                  <a
+                                    href={link.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-700 hover:underline font-medium"
+                                  >
+                                    {link.label}
+                                  </a>
+                                </React.Fragment>
+                              ))}
+                            </div>
+                          );
+                        })()}
                       </div>
 
                       {/* Project Bullets */}

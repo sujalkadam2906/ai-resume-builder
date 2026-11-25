@@ -12,6 +12,7 @@ from backend.app.schemas.resume import (
 )
 from backend.app.services.profile_converter import db_candidate_to_engine_profile
 from src.resume_builder.jd_analysis.analyzer import JDAnalyzer
+from src.resume_builder.jd_analysis.keywords import normalize_term
 from src.resume_builder.jd_analysis.models import JobDescription as EngineJD
 from src.resume_builder.project_selection.scorer import compute_project_score
 from src.resume_builder.project_selection.selector import select_projects_for_jd
@@ -43,11 +44,22 @@ class CandidateMatchingService:
         req_matrix = analyzer.evaluate_match(engine_jd)
         unsupported = req_matrix.get_unsupported_skills()
 
-        all_cand_skills = set(s.lower() for s in master_profile.technical_skills.get_all_skills_flat())
+        cand_normalized = set()
+        for s in master_profile.technical_skills.get_all_skills_flat():
+            cand_normalized.add(s.lower())
+            cand_normalized.add(normalize_term(s))
+
         matched_skills = []
         missing_skills = []
         for sk in engine_jd.required_skills:
-            if sk.lower() in all_cand_skills:
+            sk_norm = normalize_term(sk)
+            is_matched = (
+                sk.lower() in cand_normalized
+                or sk_norm in cand_normalized
+                or (sk_norm == "react" and ("react18" in cand_normalized or "react" in cand_normalized))
+                or (sk_norm == "react18" and "react" in cand_normalized)
+            )
+            if is_matched:
                 matched_skills.append(sk)
             else:
                 missing_skills.append(sk)

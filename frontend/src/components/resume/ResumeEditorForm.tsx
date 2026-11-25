@@ -12,6 +12,7 @@ import {
   Layers,
   Sparkles,
   Link as LinkIcon,
+  ExternalLink,
   HelpCircle,
 } from "lucide-react";
 import type { ResumeContentManifest, ManifestProject } from "@/types/api";
@@ -27,6 +28,18 @@ interface ResumeEditorFormProps {
   currentVersion: number;
   isSujalProfile: boolean;
 }
+
+const normalizeUrlOnBlur = (val: string, defaultDomain?: string): string => {
+  const trimmed = val.trim();
+  if (!trimmed) return "";
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("mailto:")) {
+    return trimmed;
+  }
+  if (!trimmed.includes("/") && !trimmed.includes(".") && defaultDomain) {
+    return `https://${defaultDomain}/${trimmed}`;
+  }
+  return `https://${trimmed}`;
+};
 
 export const ResumeEditorForm: React.FC<ResumeEditorFormProps> = ({
   manifest,
@@ -74,6 +87,52 @@ export const ResumeEditorForm: React.FC<ResumeEditorFormProps> = ({
       ...manifest,
       projects: newProjects,
     });
+  };
+
+  const getProjectLinkUrl = (proj: ManifestProject, labelType: "Live Demo" | "GitHub"): string => {
+    const link = (proj.links || []).find((l) => {
+      const lbl = (l.label || "").toLowerCase();
+      if (labelType === "Live Demo") {
+        return lbl.includes("demo") || lbl.includes("live") || lbl.includes("website") || lbl.includes("app");
+      }
+      return lbl.includes("github") || lbl.includes("code") || lbl.includes("repo");
+    });
+    return link?.url || "";
+  };
+
+  const updateProjectLink = (projectIndex: number, labelType: "Live Demo" | "GitHub", newUrl: string) => {
+    const newProjects = [...manifest.projects];
+    const currentProject = { ...newProjects[projectIndex] };
+    const currentLinks = [...(currentProject.links || [])];
+
+    const existingIdx = currentLinks.findIndex((l) => {
+      const lbl = (l.label || "").toLowerCase();
+      if (labelType === "Live Demo") {
+        return lbl.includes("demo") || lbl.includes("live") || lbl.includes("website") || lbl.includes("app");
+      }
+      return lbl.includes("github") || lbl.includes("code") || lbl.includes("repo");
+    });
+
+    const trimmed = newUrl.trim();
+    if (trimmed) {
+      if (existingIdx >= 0) {
+        currentLinks[existingIdx] = { label: labelType, url: trimmed };
+      } else {
+        if (labelType === "Live Demo") {
+          currentLinks.unshift({ label: "Live Demo", url: trimmed });
+        } else {
+          currentLinks.push({ label: "GitHub", url: trimmed });
+        }
+      }
+    } else {
+      if (existingIdx >= 0) {
+        currentLinks.splice(existingIdx, 1);
+      }
+    }
+
+    currentProject.links = currentLinks;
+    newProjects[projectIndex] = currentProject;
+    onChange({ ...manifest, projects: newProjects });
   };
 
   const updateProjectBullet = (projectIndex: number, bulletIndex: number, text: string) => {
@@ -295,9 +354,10 @@ export const ResumeEditorForm: React.FC<ResumeEditorFormProps> = ({
                   />
                   <input
                     type="url"
-                    placeholder="URL"
+                    placeholder="URL (e.g. https://linkedin.com/in/...)"
                     value={manifest.links?.linkedin?.url || ""}
                     onChange={(e) => updateHeaderLinks("linkedin", "url", e.target.value)}
+                    onBlur={(e) => updateHeaderLinks("linkedin", "url", normalizeUrlOnBlur(e.target.value, "linkedin.com/in"))}
                     className="w-full bg-surface-elevated border border-surface-border rounded px-2.5 py-1 text-text-muted mt-1 text-[11px]"
                   />
                 </div>
@@ -312,9 +372,10 @@ export const ResumeEditorForm: React.FC<ResumeEditorFormProps> = ({
                   />
                   <input
                     type="url"
-                    placeholder="URL"
+                    placeholder="URL (e.g. https://github.com/...)"
                     value={manifest.links?.github?.url || ""}
                     onChange={(e) => updateHeaderLinks("github", "url", e.target.value)}
+                    onBlur={(e) => updateHeaderLinks("github", "url", normalizeUrlOnBlur(e.target.value, "github.com"))}
                     className="w-full bg-surface-elevated border border-surface-border rounded px-2.5 py-1 text-text-muted mt-1 text-[11px]"
                   />
                 </div>
@@ -329,9 +390,10 @@ export const ResumeEditorForm: React.FC<ResumeEditorFormProps> = ({
                   />
                   <input
                     type="url"
-                    placeholder="URL"
+                    placeholder="URL (e.g. https://...)"
                     value={manifest.links?.portfolio?.url || ""}
                     onChange={(e) => updateHeaderLinks("portfolio", "url", e.target.value)}
+                    onBlur={(e) => updateHeaderLinks("portfolio", "url", normalizeUrlOnBlur(e.target.value))}
                     className="w-full bg-surface-elevated border border-surface-border rounded px-2.5 py-1 text-text-muted mt-1 text-[11px]"
                   />
                 </div>
@@ -445,6 +507,38 @@ export const ResumeEditorForm: React.FC<ResumeEditorFormProps> = ({
                         onChange={(e) => updateProject(pIdx, { subtitle: e.target.value })}
                         className="w-full bg-surface border border-surface-border rounded px-2.5 py-1 text-text-secondary focus:outline-none focus:border-brand-primary"
                       />
+                    </div>
+
+                    {/* Live Demo and GitHub URLs */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <div>
+                        <label className="block text-text-muted text-[11px] mb-0.5 flex items-center gap-1 font-medium">
+                          <ExternalLink className="w-3 h-3 text-text-muted" />
+                          <span>Live Demo URL (optional)</span>
+                        </label>
+                        <input
+                          type="url"
+                          placeholder="e.g. https://myproject.app"
+                          value={getProjectLinkUrl(proj, "Live Demo")}
+                          onChange={(e) => updateProjectLink(pIdx, "Live Demo", e.target.value)}
+                          onBlur={(e) => updateProjectLink(pIdx, "Live Demo", normalizeUrlOnBlur(e.target.value))}
+                          className="w-full bg-surface border border-surface-border rounded px-2.5 py-1 text-text-secondary focus:outline-none focus:border-brand-primary text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-text-muted text-[11px] mb-0.5 flex items-center gap-1 font-medium">
+                          <LinkIcon className="w-3 h-3 text-text-muted" />
+                          <span>GitHub Repository URL (optional)</span>
+                        </label>
+                        <input
+                          type="url"
+                          placeholder="e.g. https://github.com/user/repo"
+                          value={getProjectLinkUrl(proj, "GitHub")}
+                          onChange={(e) => updateProjectLink(pIdx, "GitHub", e.target.value)}
+                          onBlur={(e) => updateProjectLink(pIdx, "GitHub", normalizeUrlOnBlur(e.target.value, "github.com"))}
+                          className="w-full bg-surface border border-surface-border rounded px-2.5 py-1 text-text-secondary focus:outline-none focus:border-brand-primary text-xs"
+                        />
+                      </div>
                     </div>
 
                     {/* Bullets */}

@@ -620,6 +620,22 @@ export const ProfilesPage: React.FC = () => {
                           {proj.subtitle && (
                             <p className="text-xs text-text-secondary mt-0.5">{proj.subtitle}</p>
                           )}
+                          {proj.links && proj.links.length > 0 && (
+                            <div className="flex items-center gap-2 mt-1.5">
+                              {proj.links.map((link, lIdx) => (
+                                <a
+                                  key={lIdx}
+                                  href={link.url.startsWith("http") ? link.url : `https://${link.url}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-[11px] text-brand-primary hover:underline font-medium"
+                                >
+                                  <ExternalLink className="w-2.5 h-2.5" />
+                                  <span>{link.label}</span>
+                                </a>
+                              ))}
+                            </div>
+                          )}
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -1225,6 +1241,8 @@ const AddProjectModal: React.FC<AddProjectModalProps> = ({ profileId, onClose, o
   const [slug, setSlug] = useState("");
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
+  const [liveDemoUrl, setLiveDemoUrl] = useState("");
+  const [githubUrl, setGithubUrl] = useState("");
   const [skillsStr, setSkillsStr] = useState("");
   const [bulletsStr, setBulletsStr] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -1244,12 +1262,21 @@ const AddProjectModal: React.FC<AddProjectModalProps> = ({ profileId, onClose, o
         .map((b) => b.trim())
         .filter(Boolean);
 
+      const links: Array<{ label: string; url: string }> = [];
+      if (liveDemoUrl.trim()) {
+        links.push({ label: "Live Demo", url: liveDemoUrl.trim() });
+      }
+      if (githubUrl.trim()) {
+        links.push({ label: "GitHub", url: githubUrl.trim() });
+      }
+
       await profilesApi.createProject(profileId, {
         slug: slug.trim().toLowerCase().replace(/\s+/g, "_"),
         title: title.trim(),
         subtitle: subtitle.trim() || undefined,
         skills,
         bullets,
+        links,
         verification_status: "verified",
       });
       onSuccess();
@@ -1307,6 +1334,29 @@ const AddProjectModal: React.FC<AddProjectModalProps> = ({ profileId, onClose, o
               onChange={(e) => setSubtitle(e.target.value)}
               className="w-full bg-surface-elevated border border-surface-border rounded-lg px-3 py-2 text-text-primary focus:outline-none focus:border-brand-primary"
             />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+              <label className="block text-text-muted font-medium mb-1">Live Demo URL (optional)</label>
+              <input
+                type="url"
+                placeholder="https://myproject.app"
+                value={liveDemoUrl}
+                onChange={(e) => setLiveDemoUrl(e.target.value)}
+                className="w-full bg-surface-elevated border border-surface-border rounded-lg px-3 py-2 text-text-primary focus:outline-none focus:border-brand-primary"
+              />
+            </div>
+            <div>
+              <label className="block text-text-muted font-medium mb-1">GitHub Repo URL (optional)</label>
+              <input
+                type="url"
+                placeholder="https://github.com/..."
+                value={githubUrl}
+                onChange={(e) => setGithubUrl(e.target.value)}
+                className="w-full bg-surface-elevated border border-surface-border rounded-lg px-3 py-2 text-text-primary focus:outline-none focus:border-brand-primary"
+              />
+            </div>
           </div>
 
           <div>

@@ -42,8 +42,26 @@ def build_requirement_matrix(
             status = RequirementStatus.STRONG_MATCH
             matched_evidence = f"Verified skill in profile: {profile_norm_map[norm]}"
             matched_candidate_skills.append(profile_norm_map[norm])
+        elif norm == "react" and "react18" in profile_norm_map:
+            status = RequirementStatus.STRONG_MATCH
+            matched_evidence = f"Verified skill in profile: {profile_norm_map['react18']}"
+            matched_candidate_skills.append(profile_norm_map['react18'])
+        elif norm == "react18" and "react" in profile_norm_map:
+            status = RequirementStatus.STRONG_MATCH
+            matched_evidence = f"Verified skill in profile: {profile_norm_map['react']}"
+            matched_candidate_skills.append(profile_norm_map['react'])
         elif norm in project_skills_map:
             actual_s, proj_title = project_skills_map[norm]
+            status = RequirementStatus.STRONG_MATCH
+            matched_evidence = f"Applied in project '{proj_title}' ({actual_s})"
+            matched_candidate_skills.append(actual_s)
+        elif norm == "react" and "react18" in project_skills_map:
+            actual_s, proj_title = project_skills_map["react18"]
+            status = RequirementStatus.STRONG_MATCH
+            matched_evidence = f"Applied in project '{proj_title}' ({actual_s})"
+            matched_candidate_skills.append(actual_s)
+        elif norm == "react18" and "react" in project_skills_map:
+            actual_s, proj_title = project_skills_map["react"]
             status = RequirementStatus.STRONG_MATCH
             matched_evidence = f"Applied in project '{proj_title}' ({actual_s})"
             matched_candidate_skills.append(actual_s)
@@ -88,8 +106,26 @@ def build_requirement_matrix(
             status = RequirementStatus.STRONG_MATCH
             matched_evidence = f"Profile verified: {profile_norm_map[norm]}"
             matched_candidate_skills.append(profile_norm_map[norm])
+        elif norm == "react" and "react18" in profile_norm_map:
+            status = RequirementStatus.STRONG_MATCH
+            matched_evidence = f"Profile verified: {profile_norm_map['react18']}"
+            matched_candidate_skills.append(profile_norm_map['react18'])
+        elif norm == "react18" and "react" in profile_norm_map:
+            status = RequirementStatus.STRONG_MATCH
+            matched_evidence = f"Profile verified: {profile_norm_map['react']}"
+            matched_candidate_skills.append(profile_norm_map['react'])
         elif norm in project_skills_map:
             actual_s, proj_title = project_skills_map[norm]
+            status = RequirementStatus.STRONG_MATCH
+            matched_evidence = f"Applied in project '{proj_title}' ({actual_s})"
+            matched_candidate_skills.append(actual_s)
+        elif norm == "react" and "react18" in project_skills_map:
+            actual_s, proj_title = project_skills_map["react18"]
+            status = RequirementStatus.STRONG_MATCH
+            matched_evidence = f"Applied in project '{proj_title}' ({actual_s})"
+            matched_candidate_skills.append(actual_s)
+        elif norm == "react18" and "react" in project_skills_map:
+            actual_s, proj_title = project_skills_map["react"]
             status = RequirementStatus.STRONG_MATCH
             matched_evidence = f"Applied in project '{proj_title}' ({actual_s})"
             matched_candidate_skills.append(actual_s)

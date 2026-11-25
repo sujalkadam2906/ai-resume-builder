@@ -28,11 +28,22 @@ CANONICAL_SKILL_MAP: Dict[str, str] = {
     "es6": "JavaScript (ES6+)",
     "typescript": "TypeScript",
     "ts": "TypeScript",
-    "react": "React 18",
-    "reactjs": "React 18",
-    "react.js": "React 18",
-    "react js": "React 18",
+    "react": "React",
+    "reactjs": "React",
+    "react.js": "React",
+    "react js": "React",
     "react 18": "React 18",
+    "fastapi": "FastAPI",
+    "fast api": "FastAPI",
+    "flask": "Flask",
+    "django": "Django",
+    "express": "Express",
+    "nextjs": "Next.js",
+    "next.js": "Next.js",
+    "redis": "Redis",
+    "graphql": "GraphQL",
+    "tailwind": "Tailwind CSS",
+    "tailwindcss": "Tailwind CSS",
     "html": "HTML5",
     "html5": "HTML5",
     "css": "CSS3",
@@ -93,7 +104,7 @@ CANONICAL_SKILL_MAP: Dict[str, str] = {
 
 # Technical keywords categorized
 KNOWN_LANGUAGES = {"Java", "Python", "SQL", "JavaScript", "TypeScript", "C++", "C#", "Go", "Rust", "PHP", "Ruby", "Kotlin", "Swift"}
-KNOWN_FRAMEWORKS = {"Spring Boot", "Spring MVC", "Spring Data JPA", "Hibernate", "React 18", "Vue", "Angular", "Next.js", "Django", "Flask", "FastAPI", "Express"}
+KNOWN_FRAMEWORKS = {"Spring Boot", "Spring MVC", "Spring Data JPA", "Hibernate", "React", "React 18", "Vue", "Angular", "Next.js", "Django", "Flask", "FastAPI", "Express"}
 KNOWN_DATABASES = {"MySQL", "PostgreSQL", "MongoDB", "Oracle", "Redis", "SQLite", "DynamoDB", "Cassandra"}
 KNOWN_TOOLS = {"Git", "GitHub", "Maven", "Gradle", "Docker", "Kubernetes", "JUnit 5", "Pytest", "Playwright", "ReportLab", "Vitest", "Vite", "Linux", "AWS", "Azure", "GCP", "Postman", "Figma", "Jira"}
 

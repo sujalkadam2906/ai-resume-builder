@@ -39,7 +39,9 @@ class GeminiProvider(BaseAIProvider):
 
         try:
             from google import genai
-            client = genai.Client(api_key=self.api_key)
+            from google.genai import types
+            timeout_ms = int(min(self.timeout_seconds, 10) * 1000)
+            client = genai.Client(api_key=self.api_key, http_options=types.HttpOptions(timeout=timeout_ms))
             models = self.discover_models()
             return {
                 "provider": self.display_name,
@@ -70,7 +72,9 @@ class GeminiProvider(BaseAIProvider):
 
         try:
             from google import genai
-            client = genai.Client(api_key=self.api_key)
+            from google.genai import types
+            timeout_ms = int(min(self.timeout_seconds, 10) * 1000)
+            client = genai.Client(api_key=self.api_key, http_options=types.HttpOptions(timeout=timeout_ms))
             available = set()
             for m in client.models.list():
                 name = getattr(m, "name", "")
@@ -94,7 +98,8 @@ class GeminiProvider(BaseAIProvider):
         from google import genai
         from google.genai import types
 
-        client = genai.Client(api_key=self.api_key)
+        timeout_ms = int(self.timeout_seconds * 1000)
+        client = genai.Client(api_key=self.api_key, http_options=types.HttpOptions(timeout=timeout_ms))
         user_prompt = build_tailoring_user_prompt(profile, selected_projects, jd, req_matrix)
         models = self.discover_models()
 

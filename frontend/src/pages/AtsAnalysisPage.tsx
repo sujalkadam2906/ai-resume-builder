@@ -156,9 +156,9 @@ export const AtsAnalysisPage: React.FC = () => {
           <div className="bg-surface border border-surface-border rounded-xl p-6 space-y-6 shadow-xs">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-surface-border">
               <div>
-                <h3 className="text-base font-bold text-text-primary">ATS Readiness Score</h3>
+                <h3 className="text-base font-bold text-text-primary">ATS Document Readiness Score</h3>
                 <p className="text-xs text-text-muted mt-0.5">
-                  Calculated against extracted job description keywords and single-page constraints
+                  Evaluates keyword density & formatting constraints in the rendered resume PDF
                 </p>
               </div>
 
@@ -233,7 +233,7 @@ export const AtsAnalysisPage: React.FC = () => {
               <div className="bg-surface-elevated/60 border border-surface-border rounded-lg p-4 space-y-2">
                 <span className="text-xs font-bold text-text-primary flex items-center gap-1.5">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                  Matched Keywords ({latestEvaluation.matched_keywords?.length || 0})
+                  Matched in Resume PDF ({latestEvaluation.matched_keywords?.length || 0})
                 </span>
                 <div className="flex flex-wrap gap-1.5">
                   {latestEvaluation.matched_keywords?.map((kw) => (
@@ -250,7 +250,7 @@ export const AtsAnalysisPage: React.FC = () => {
               <div className="bg-surface-elevated/60 border border-surface-border rounded-lg p-4 space-y-2">
                 <span className="text-xs font-bold text-text-primary flex items-center gap-1.5">
                   <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-                  Missing Keywords ({latestEvaluation.missing_keywords?.length || 0})
+                  Missing from Resume PDF ({latestEvaluation.missing_keywords?.length || 0})
                 </span>
                 <div className="flex flex-wrap gap-1.5">
                   {latestEvaluation.missing_keywords?.length > 0 ? (
@@ -263,7 +263,7 @@ export const AtsAnalysisPage: React.FC = () => {
                       </span>
                     ))
                   ) : (
-                    <span className="text-xs text-text-muted">No critical missing keywords</span>
+                    <span className="text-xs text-text-muted">All target keywords present in rendered PDF</span>
                   )}
                 </div>
               </div>

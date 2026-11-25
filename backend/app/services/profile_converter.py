@@ -2,6 +2,7 @@
 
 from typing import Any, Dict, List, Optional, Tuple
 from backend.app.models.candidate import CandidateProfile, Project as DBProject
+from src.resume_builder.utils.text_cleaner import normalize_url
 from src.resume_builder.profile.models import (
     AchievementItem,
     EducationItem,
@@ -40,22 +41,29 @@ def db_candidate_to_engine_profile(
 
     # 2. Links
     links_data = candidate.links or {}
-    linkedin_raw = links_data.get("linkedin", {})
-    github_raw = links_data.get("github", {})
-    portfolio_raw = links_data.get("portfolio", {})
+    linkedin_raw = links_data.get("linkedin", {}) if isinstance(links_data, dict) else {}
+    github_raw = links_data.get("github", {}) if isinstance(links_data, dict) else {}
+    portfolio_raw = links_data.get("portfolio", {}) if isinstance(links_data, dict) else {}
+
+    if isinstance(linkedin_raw, str):
+        linkedin_raw = {"url": linkedin_raw, "display": linkedin_raw}
+    if isinstance(github_raw, str):
+        github_raw = {"url": github_raw, "display": github_raw}
+    if isinstance(portfolio_raw, str):
+        portfolio_raw = {"url": portfolio_raw, "display": portfolio_raw}
 
     links_profile = LinksProfile(
         linkedin=LinkItem(
-            url=linkedin_raw.get("url", "https://linkedin.com"),
-            display=linkedin_raw.get("display", "linkedin.com/in/profile"),
+            url=normalize_url(linkedin_raw.get("url"), default_domain="linkedin.com/in", fallback=linkedin_raw.get("display")) or "https://linkedin.com",
+            display=linkedin_raw.get("display") or "linkedin.com/in/profile",
         ),
         github=LinkItem(
-            url=github_raw.get("url", "https://github.com"),
-            display=github_raw.get("display", "github.com/profile"),
+            url=normalize_url(github_raw.get("url"), default_domain="github.com", fallback=github_raw.get("display")) or "https://github.com",
+            display=github_raw.get("display") or "github.com/profile",
         ),
         portfolio=LinkItem(
-            url=portfolio_raw.get("url", "https://example.com"),
-            display=portfolio_raw.get("display", "portfolio.dev"),
+            url=normalize_url(portfolio_raw.get("url"), fallback=portfolio_raw.get("display")) or "https://example.com",
+            display=portfolio_raw.get("display") or "portfolio.dev",
         ),
     )
 

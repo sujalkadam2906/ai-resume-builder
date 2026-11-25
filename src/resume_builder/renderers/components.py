@@ -6,7 +6,7 @@ from reportlab.platypus import HRFlowable, Paragraph, Spacer, Table, TableStyle
 
 from ..content.manifest import ManifestProject, ResumeContentManifest
 from ..profile.models import AchievementItem, EducationItem, LeadershipItem, ProfessionalDevelopmentItem
-from ..utils.text_cleaner import escape_xml
+from ..utils.text_cleaner import escape_xml, escape_xml_attr, normalize_url
 from .design_system import (
     COLOR_FOREST_GREEN,
     COLOR_HYPERLINK,
@@ -202,12 +202,46 @@ def build_resume_header(manifest: ResumeContentManifest, styles: ComponentStyles
     flowables.append(Paragraph(contact_text, styles.contact_style))
 
     # 4. Professional Links Row (Visible clean URL & Clickable, Hyperlink Blue #267BF1, underlined)
-    links_text = (
-        f'<a href="{links.linkedin.url}" color="{HEX_HYPERLINK}"><u>{escape_xml(links.linkedin.display)}</u></a>   |   '
-        f'<a href="{links.github.url}" color="{HEX_HYPERLINK}"><u>{escape_xml(links.github.display)}</u></a>   |   '
-        f'<a href="{links.portfolio.url}" color="{HEX_HYPERLINK}"><u>{escape_xml(links.portfolio.display)}</u></a>'
-    )
-    flowables.append(Paragraph(links_text, styles.links_style))
+    def _get_link_field(item: Any, field: str, default: str = "") -> str:
+        if isinstance(item, dict):
+            return item.get(field, default) or default
+        return getattr(item, field, default) or default
+
+    li_item = getattr(links, "linkedin", None) if hasattr(links, "linkedin") else (links.get("linkedin") if isinstance(links, dict) else None)
+    gh_item = getattr(links, "github", None) if hasattr(links, "github") else (links.get("github") if isinstance(links, dict) else None)
+    pf_item = getattr(links, "portfolio", None) if hasattr(links, "portfolio") else (links.get("portfolio") if isinstance(links, dict) else None)
+
+    li_url = normalize_url(_get_link_field(li_item, "url"), default_domain="linkedin.com/in", fallback=_get_link_field(li_item, "display"))
+    li_disp = _get_link_field(li_item, "display", "linkedin.com/in/profile")
+
+    gh_url = normalize_url(_get_link_field(gh_item, "url"), default_domain="github.com", fallback=_get_link_field(gh_item, "display"))
+    gh_disp = _get_link_field(gh_item, "display", "github.com/profile")
+
+    pf_url = normalize_url(_get_link_field(pf_item, "url"), fallback=_get_link_field(pf_item, "display"))
+    pf_disp = _get_link_field(pf_item, "display", "portfolio.dev")
+
+    links_parts = []
+    if li_disp:
+        if li_url:
+            links_parts.append(f'<a href="{escape_xml_attr(li_url)}" color="{HEX_HYPERLINK}"><u>{escape_xml(li_disp)}</u></a>')
+        else:
+            links_parts.append(f'<font color="{HEX_HYPERLINK}"><u>{escape_xml(li_disp)}</u></font>')
+
+    if gh_disp:
+        if gh_url:
+            links_parts.append(f'<a href="{escape_xml_attr(gh_url)}" color="{HEX_HYPERLINK}"><u>{escape_xml(gh_disp)}</u></a>')
+        else:
+            links_parts.append(f'<font color="{HEX_HYPERLINK}"><u>{escape_xml(gh_disp)}</u></font>')
+
+    if pf_disp:
+        if pf_url:
+            links_parts.append(f'<a href="{escape_xml_attr(pf_url)}" color="{HEX_HYPERLINK}"><u>{escape_xml(pf_disp)}</u></a>')
+        else:
+            links_parts.append(f'<font color="{HEX_HYPERLINK}"><u>{escape_xml(pf_disp)}</u></font>')
+
+    links_text = "   |   ".join(links_parts)
+    if links_text:
+        flowables.append(Paragraph(links_text, styles.links_style))
 
     # 5. Thin Divider Line beneath header
     flowables.append(HRFlowable(
@@ -279,17 +313,36 @@ def build_technical_skills(ordered_skills: Dict[str, List[str]], styles: Compone
 def build_project_entry(project: ManifestProject, styles: ComponentStyles) -> List[Any]:
     """
     Renders a project entry with:
-    - Bold title in Navy with clean GitHub / Paper link
+    - Bold title in Navy with clean Live Demo | GitHub links
     - Subtitle in Muted Blue Italic
     - 2 concise, evidence-backed bullets with hanging indents
     """
     flowables = []
 
-    # Title line with clickable link (Hyperlink Blue #267BF1, underlined)
-    links_html = []
-    for l in project.links:
-        links_html.append(f'<a href="{l["url"]}" color="{HEX_HYPERLINK}"><u>[{escape_xml(l["label"])}]</u></a>')
-    links_str = "  ".join(links_html)
+    # Title line with clickable links (Hyperlink Blue #267BF1, underlined)
+    # Formats as compact "Live Demo | GitHub"
+    valid_links = []
+    for l in (project.links or []):
+        l_url = l.get("url") if isinstance(l, dict) else getattr(l, "url", "")
+        l_label = l.get("label") if isinstance(l, dict) else getattr(l, "label", "")
+        norm_proj_url = normalize_url(l_url)
+        if norm_proj_url:
+            clean_label = (l_label or "").strip("[] ").strip()
+            low = clean_label.lower()
+            if low in ("demo", "live", "live demo", "website", "app"):
+                clean_label = "Live Demo"
+            elif low in ("github", "code", "repo", "repository"):
+                clean_label = "GitHub"
+            elif not clean_label:
+                clean_label = "Link"
+            valid_links.append((clean_label, norm_proj_url))
+
+    links_parts = []
+    for lbl, url in valid_links:
+        links_parts.append(
+            f'<a href="{escape_xml_attr(url)}" color="{HEX_HYPERLINK}"><u>{escape_xml(lbl)}</u></a>'
+        )
+    links_str = " | ".join(links_parts)
 
     title_html = f'<font color="{HEX_DEEP_SLATE_NAVY}"><b>{escape_xml(project.title)}</b></font>'
     if links_str:
@@ -379,7 +432,7 @@ def build_leadership_and_achievements(
         if target_phrase in desc:
             desc = desc.replace(
                 target_phrase,
-                f'<a href="{doi_url}" color="{HEX_HYPERLINK}"><u>{target_phrase}</u></a>',
+                f'<a href="{escape_xml_attr(doi_url)}" color="{HEX_HYPERLINK}"><u>{escape_xml(target_phrase)}</u></a>',
             )
         ach_html = (
             f'•   <font color="{HEX_DEEP_SLATE_NAVY}"><b>{escape_xml(ach.title)}:</b></font> '

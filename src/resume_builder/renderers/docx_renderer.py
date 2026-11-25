@@ -1,7 +1,7 @@
 """Deterministic python-docx Resume Renderer matching Times New Roman PDF layout, page border, and design system."""
 
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 import docx
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
@@ -9,6 +9,7 @@ from docx.oxml.ns import qn
 from docx.shared import Inches, Pt, RGBColor
 
 from ..content.manifest import ResumeContentManifest
+from ..utils.text_cleaner import normalize_url
 from .design_system import (
     HEX_BODY_TEXT,
     HEX_DEEP_SLATE_NAVY,
@@ -41,8 +42,18 @@ COLOR_BORDER = COLOR_PRIMARY_TEAL
 
 def add_hyperlink(paragraph, text: str, url: str, color_rgb: RGBColor = COLOR_HYPERLINK, underline: bool = True):
     """Add a clickable hyperlink to a python-docx paragraph (Hyperlink Blue #267BF1, underlined)."""
+    norm_url = normalize_url(url)
+    if not norm_url:
+        run = paragraph.add_run(text)
+        run.font.name = "Times New Roman"
+        if color_rgb:
+            run.font.color.rgb = color_rgb
+        if underline:
+            run.font.underline = True
+        return run
+
     part = paragraph.part
-    r_id = part.relate_to(url, docx.opc.constants.RELATIONSHIP_TYPE.HYPERLINK, is_external=True)
+    r_id = part.relate_to(norm_url, docx.opc.constants.RELATIONSHIP_TYPE.HYPERLINK, is_external=True)
 
     hyperlink = OxmlElement("w:hyperlink")
     hyperlink.set(qn("r:id"), r_id)
@@ -205,19 +216,38 @@ def render_docx(manifest: ResumeContentManifest, output_path: Path) -> Path:
     p_links.alignment = WD_ALIGN_PARAGRAPH.CENTER
     p_links.paragraph_format.space_before = Pt(0)
     p_links.paragraph_format.space_after = Pt(3)
-    add_hyperlink(p_links, links.linkedin.display, links.linkedin.url, color_rgb=COLOR_HYPERLINK)
+
+    def _get_link_field(item: Any, field: str, default: str = "") -> str:
+        if isinstance(item, dict):
+            return item.get(field, default) or default
+        return getattr(item, field, default) or default
+
+    li_item = getattr(links, "linkedin", None) if hasattr(links, "linkedin") else (links.get("linkedin") if isinstance(links, dict) else None)
+    gh_item = getattr(links, "github", None) if hasattr(links, "github") else (links.get("github") if isinstance(links, dict) else None)
+    pf_item = getattr(links, "portfolio", None) if hasattr(links, "portfolio") else (links.get("portfolio") if isinstance(links, dict) else None)
+
+    li_url = normalize_url(_get_link_field(li_item, "url"), default_domain="linkedin.com/in", fallback=_get_link_field(li_item, "display"))
+    li_disp = _get_link_field(li_item, "display", "linkedin.com/in/profile")
+
+    gh_url = normalize_url(_get_link_field(gh_item, "url"), default_domain="github.com", fallback=_get_link_field(gh_item, "display"))
+    gh_disp = _get_link_field(gh_item, "display", "github.com/profile")
+
+    pf_url = normalize_url(_get_link_field(pf_item, "url"), fallback=_get_link_field(pf_item, "display"))
+    pf_disp = _get_link_field(pf_item, "display", "portfolio.dev")
+
+    add_hyperlink(p_links, li_disp, li_url, color_rgb=COLOR_HYPERLINK)
     r_sep1 = p_links.add_run("   |   ")
     r_sep1.font.name = "Times New Roman"
     r_sep1.font.size = Pt(8.8)
     r_sep1.font.color.rgb = COLOR_GRAY
 
-    add_hyperlink(p_links, links.github.display, links.github.url, color_rgb=COLOR_HYPERLINK)
+    add_hyperlink(p_links, gh_disp, gh_url, color_rgb=COLOR_HYPERLINK)
     r_sep2 = p_links.add_run("   |   ")
     r_sep2.font.name = "Times New Roman"
     r_sep2.font.size = Pt(8.8)
     r_sep2.font.color.rgb = COLOR_GRAY
 
-    add_hyperlink(p_links, links.portfolio.display, links.portfolio.url, color_rgb=COLOR_HYPERLINK)
+    add_hyperlink(p_links, pf_disp, pf_url, color_rgb=COLOR_HYPERLINK)
 
     # Accent bottom rule under header (Light Divider #D4DFD9)
     set_paragraph_bottom_border(p_links, color_hex="D4DFD9", sz="4")
@@ -284,13 +314,32 @@ def render_docx(manifest: ResumeContentManifest, output_path: Path) -> Path:
         r_pt.font.bold = True
         r_pt.font.color.rgb = COLOR_NAVY
 
-        # Hyperlinks
-        if proj.links:
+        # Hyperlinks (Live Demo | GitHub)
+        valid_links = []
+        for l in (proj.links or []):
+            l_url = l.get("url") if isinstance(l, dict) else getattr(l, "url", "")
+            l_label = l.get("label") if isinstance(l, dict) else getattr(l, "label", "")
+            norm_url = normalize_url(l_url)
+            if norm_url:
+                clean_lbl = (l_label or "").strip("[] ").strip()
+                low = clean_lbl.lower()
+                if low in ("demo", "live", "live demo", "website", "app"):
+                    clean_lbl = "Live Demo"
+                elif low in ("github", "code", "repo", "repository"):
+                    clean_lbl = "GitHub"
+                elif not clean_lbl:
+                    clean_lbl = "Link"
+                valid_links.append((clean_lbl, norm_url))
+
+        if valid_links:
             p_pj.add_run("   ")
-            for idx, l in enumerate(proj.links):
+            for idx, (lbl, url) in enumerate(valid_links):
                 if idx > 0:
-                    p_pj.add_run("  ")
-                add_hyperlink(p_pj, f"[{l['label']}]", l["url"], color_rgb=COLOR_HYPERLINK, underline=True)
+                    r_sep = p_pj.add_run(" | ")
+                    r_sep.font.name = "Times New Roman"
+                    r_sep.font.size = Pt(9.5)
+                    r_sep.font.color.rgb = COLOR_BODY
+                add_hyperlink(p_pj, lbl, url, color_rgb=COLOR_HYPERLINK, underline=True)
 
         # Subtitle / tech stack
         if proj.subtitle:

@@ -241,6 +241,8 @@ class ProfileService:
         data: CandidateProfileUpdate,
     ) -> CandidateProfile:
         """Perform partial update (PATCH semantics) preserving metadata and child entities."""
+        if profile.is_synthetic or profile.slug == "demo_candidate":
+            raise ValueError("Shared demo candidate template is read-only and cannot be modified.")
         update_dict = data.model_dump(exclude_unset=True)
 
         for key, val in update_dict.items():
@@ -260,6 +262,8 @@ class ProfileService:
     @staticmethod
     def archive_profile(session: Session, profile: CandidateProfile) -> CandidateProfile:
         """Soft-delete / archive candidate profile without deleting data."""
+        if profile.is_synthetic or profile.slug == "demo_candidate":
+            raise ValueError("Shared demo candidate template cannot be archived or deleted.")
         rules = dict(profile.config_rules or {})
         rules["is_archived"] = True
         rules["archived_at"] = datetime.now(timezone.utc).isoformat()
@@ -270,6 +274,8 @@ class ProfileService:
     @staticmethod
     def restore_profile(session: Session, profile: CandidateProfile) -> CandidateProfile:
         """Restore an archived candidate profile."""
+        if profile.is_synthetic or profile.slug == "demo_candidate":
+            raise ValueError("Shared demo candidate template cannot be modified.")
         rules = dict(profile.config_rules or {})
         rules["is_archived"] = False
         rules.pop("archived_at", None)

@@ -66,17 +66,19 @@ def _resolve_profile_or_404(
             detail=f"Candidate profile '{profile_identifier}' not found.",
         )
 
-    # Synthetic demo templates are read-only
-    if for_mutation and profile.is_synthetic:
+    # Synthetic demo templates (Aarav Sharma / demo_candidate) are strictly read-only across all environments
+    is_demo_template = bool(profile.is_synthetic) or (profile.slug == "demo_candidate")
+    if for_mutation and is_demo_template:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Shared demo candidate template is read-only. Clone this profile into your workspace to make changes.",
         )
 
     # Disallow modifying profiles owned by another user (fail-closed check)
-    is_owner = (profile.user_id == current_user.user_uuid) or (
+    is_owner = (profile.user_id is not None and profile.user_id == current_user.user_uuid) or (
         not settings.is_production
         and profile.user_id is None
+        and not is_demo_template
         and current_user.user_uuid == uuid.uuid5(uuid.NAMESPACE_DNS, "dev-local-user")
     )
     if for_mutation and not is_owner:

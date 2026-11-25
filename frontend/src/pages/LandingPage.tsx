@@ -35,9 +35,21 @@ export const LandingPage: React.FC = () => {
             <a href="#features" className="hover:text-text-primary transition-colors">
               Features
             </a>
-            <a href="#ats-engine" className="hover:text-text-primary transition-colors">
+            <Link
+              to={session ? "/ats" : "#ats-engine"}
+              onClick={(e) => {
+                if (!session) {
+                  const el = document.getElementById("ats-engine");
+                  if (el) {
+                    e.preventDefault();
+                    el.scrollIntoView({ behavior: "smooth" });
+                  }
+                }
+              }}
+              className="hover:text-text-primary transition-colors"
+            >
               ATS Diagnostics
-            </a>
+            </Link>
             <a href="#workflow" className="hover:text-text-primary transition-colors">
               Workflow
             </a>
@@ -259,17 +271,31 @@ export const LandingPage: React.FC = () => {
             </p>
           </div>
 
-          {/* Card 2 */}
-          <div className="bg-surface p-8 rounded-xl border border-surface-border shadow-subtle hover:shadow-card transition-all">
-            <div className="w-10 h-10 rounded-lg bg-[#315C4B] text-white flex items-center justify-center mb-5">
-              <Target className="w-5 h-5 text-emerald-200" />
+          {/* Card 2 - ATS Diagnostics Engine */}
+          <div
+            id="ats-engine"
+            className="bg-surface p-8 rounded-xl border border-surface-border shadow-subtle hover:shadow-card transition-all flex flex-col justify-between scroll-mt-24"
+          >
+            <div>
+              <div className="w-10 h-10 rounded-lg bg-[#315C4B] text-white flex items-center justify-center mb-5">
+                <Target className="w-5 h-5 text-emerald-200" />
+              </div>
+              <h3 className="font-serif text-xl font-semibold text-text-primary mb-2">
+                ATS Scoring Matrix
+              </h3>
+              <p className="text-sm text-text-secondary leading-relaxed">
+                A 100-point diagnostic scoring system evaluating formatting robustness, keyword alignment, and typographical compliance.
+              </p>
             </div>
-            <h3 className="font-serif text-xl font-semibold text-text-primary mb-2">
-              ATS Scoring Matrix
-            </h3>
-            <p className="text-sm text-text-secondary leading-relaxed">
-              A 100-point diagnostic scoring system evaluating formatting robustness, keyword alignment, and typographical compliance.
-            </p>
+            <div className="mt-5 pt-4 border-t border-surface-border flex items-center justify-between">
+              <Link
+                to={session ? "/ats" : "/login"}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#B79A65] hover:text-text-primary transition-colors group"
+              >
+                <span>Launch ATS Diagnostics</span>
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+            </div>
           </div>
 
           {/* Card 3 */}

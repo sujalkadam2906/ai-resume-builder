@@ -193,11 +193,16 @@ export const JobDescriptionsPage: React.FC = () => {
                           <span className="truncate">{jd.company_name || "Company"}</span>
                         </div>
                       </div>
-                      {jd.match_percentage !== null && jd.match_percentage !== undefined && (
-                        <span className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-brand-primary/10 text-brand-primary shrink-0 border border-brand-primary/20">
-                          {Math.round(jd.match_percentage)}%
-                        </span>
-                      )}
+                      {(() => {
+                        const displayScore = isSelected && matchData?.overall_match_percentage !== undefined
+                          ? matchData.overall_match_percentage
+                          : jd.match_percentage;
+                        return displayScore !== null && displayScore !== undefined ? (
+                          <span className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-brand-primary/10 text-brand-primary shrink-0 border border-brand-primary/20">
+                            {Math.round(displayScore)}% Match
+                          </span>
+                        ) : null;
+                      })()}
                     </div>
 
                     <div className="flex items-center justify-between text-[10px] text-text-muted pt-2 border-t border-surface-border/50 mt-2">
@@ -293,7 +298,7 @@ export const JobDescriptionsPage: React.FC = () => {
                       <div className="flex items-center gap-2">
                         <Target className="w-4 h-4 text-brand-primary" />
                         <span className="text-xs font-semibold text-text-primary">
-                          Candidate Alignment Score
+                          Candidate Profile Alignment
                         </span>
                         <span className="text-[10px] text-text-muted font-mono">
                           ({matchData.candidate_slug})
@@ -316,13 +321,13 @@ export const JobDescriptionsPage: React.FC = () => {
                         <span className="text-emerald-400 font-bold">
                           {matchData.matched_skills?.length || 0}
                         </span>
-                        <span className="text-text-muted ml-1">Matched</span>
+                        <span className="text-text-muted ml-1">In Profile</span>
                       </div>
                       <div>
                         <span className="text-amber-400 font-bold">
                           {matchData.missing_skills?.length || 0}
                         </span>
-                        <span className="text-text-muted ml-1">Missing</span>
+                        <span className="text-text-muted ml-1">Missing from Profile</span>
                       </div>
                       <div>
                         <span className="text-text-muted font-bold">

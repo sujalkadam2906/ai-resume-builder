@@ -16,6 +16,7 @@ from backend.app.schemas.resume import (
 from backend.app.services.profile_converter import db_candidate_to_engine_profile
 from backend.app.services.profile_service import ProfileService
 from src.resume_builder.jd_analysis.analyzer import JDAnalyzer
+from src.resume_builder.jd_analysis.keywords import normalize_term
 from src.resume_builder.jd_analysis.models import JobDescription as EngineJD
 
 
@@ -187,18 +188,27 @@ class JobDescriptionService:
         matched_skills_list = []
         missing_skills_list = []
         if master_profile:
-            req_matrix = analyzer.evaluate_match(engine_jd)
-            total_req = len(engine_jd.required_skills)
-            unsupported = len(req_matrix.get_unsupported_skills())
-            matched_count = max(0, total_req - unsupported)
-            match_percentage = round((matched_count / total_req * 100.0), 1) if total_req > 0 else 100.0
+            cand_normalized = set()
+            for s in master_profile.technical_skills.get_all_skills_flat():
+                cand_normalized.add(s.lower())
+                cand_normalized.add(normalize_term(s))
 
-            all_cand_skills = set(s.lower() for s in master_profile.technical_skills.get_all_skills_flat())
             for sk in engine_jd.required_skills:
-                if sk.lower() in all_cand_skills:
+                sk_norm = normalize_term(sk)
+                is_matched = (
+                    sk.lower() in cand_normalized
+                    or sk_norm in cand_normalized
+                    or (sk_norm == "react" and ("react18" in cand_normalized or "react" in cand_normalized))
+                    or (sk_norm == "react18" and "react" in cand_normalized)
+                )
+                if is_matched:
                     matched_skills_list.append(sk)
                 else:
                     missing_skills_list.append(sk)
+
+            total_req = len(engine_jd.required_skills)
+            matched_count = len(matched_skills_list)
+            match_percentage = round((matched_count / total_req * 100.0), 1) if total_req > 0 else 100.0
 
         # 6. Build stored requirement_matrix
         existing_matrix = dict(jd.requirement_matrix or {})
