@@ -114,36 +114,55 @@ def upgrade() -> None:
     # 3. Data Backfill & Integrity Check (Fail-Closed Safety)
     # ==============================================================================
     if is_offline:
-        # Static SQL script generation: emit deterministic UPDATE statements using auth.users lookup
-        operator_email = os.getenv("ALLOWED_EMAILS", "").split(",")[0].strip() or "operator@example.com"
+        # Static SQL script generation: emit deterministic fail-closed PL/pgSQL block using auth.users lookup
+        operator_email = os.getenv("ALLOWED_EMAILS", "").split(",")[0].strip() or "sujalsunilkadam@gmail.com"
         op.execute(f"""
-            -- Backfill candidate_profiles for sujal using auth.users subquery
-            UPDATE candidate_profiles
-            SET user_id = (SELECT id FROM auth.users WHERE lower(email) = lower('{operator_email}') LIMIT 1)
-            WHERE slug = 'sujal' AND is_synthetic = FALSE AND user_id IS NULL;
+            DO $backfill$
+            DECLARE
+                v_operator_id uuid;
+                v_sujal_count int;
+            BEGIN
+                -- 1. Resolve operator user ID from auth.users (case-insensitive)
+                SELECT id INTO v_operator_id FROM auth.users WHERE lower(email) = lower('{operator_email}') LIMIT 1;
 
-            -- Backfill resumes linked to sujal
-            UPDATE resumes
-            SET user_id = (SELECT id FROM auth.users WHERE lower(email) = lower('{operator_email}') LIMIT 1)
-            WHERE profile_id IN (SELECT id FROM candidate_profiles WHERE slug = 'sujal') AND user_id IS NULL;
+                -- 2. Check if non-synthetic sujal profile exists
+                SELECT COUNT(*) INTO v_sujal_count FROM candidate_profiles WHERE slug = 'sujal' AND is_synthetic = FALSE;
 
-            -- Backfill job_descriptions linked to sujal directly or via resumes
-            UPDATE job_descriptions
-            SET user_id = (SELECT id FROM auth.users WHERE lower(email) = lower('{operator_email}') LIMIT 1)
-            WHERE profile_id IN (SELECT id FROM candidate_profiles WHERE slug = 'sujal') AND user_id IS NULL;
+                -- 3. Fail-closed: If sujal profile exists but operator account cannot be resolved, abort!
+                IF v_sujal_count > 0 AND v_operator_id IS NULL THEN
+                    RAISE EXCEPTION 'Migration aborted: Non-synthetic profile for sujal exists, but operator account "%" was not found in auth.users. Ensure the operator exists in Supabase Auth before migrating.', '{operator_email}';
+                END IF;
 
-            UPDATE job_descriptions
-            SET user_id = (SELECT id FROM auth.users WHERE lower(email) = lower('{operator_email}') LIMIT 1)
-            WHERE id IN (
-                SELECT job_description_id FROM resumes
-                WHERE profile_id IN (SELECT id FROM candidate_profiles WHERE slug = 'sujal')
-                AND job_description_id IS NOT NULL
-            ) AND user_id IS NULL;
+                IF v_operator_id IS NOT NULL THEN
+                    -- Backfill candidate_profiles for sujal
+                    UPDATE candidate_profiles
+                    SET user_id = v_operator_id
+                    WHERE slug = 'sujal' AND is_synthetic = FALSE AND user_id IS NULL;
 
-            -- Backfill file_assets linked to sujal
-            UPDATE file_assets
-            SET user_id = (SELECT id FROM auth.users WHERE lower(email) = lower('{operator_email}') LIMIT 1)
-            WHERE profile_id IN (SELECT id FROM candidate_profiles WHERE slug = 'sujal') AND user_id IS NULL;
+                    -- Backfill resumes linked to sujal
+                    UPDATE resumes
+                    SET user_id = v_operator_id
+                    WHERE profile_id IN (SELECT id FROM candidate_profiles WHERE slug = 'sujal') AND user_id IS NULL;
+
+                    -- Backfill job_descriptions linked to sujal directly or via resumes
+                    UPDATE job_descriptions
+                    SET user_id = v_operator_id
+                    WHERE profile_id IN (SELECT id FROM candidate_profiles WHERE slug = 'sujal') AND user_id IS NULL;
+
+                    UPDATE job_descriptions
+                    SET user_id = v_operator_id
+                    WHERE id IN (
+                        SELECT job_description_id FROM resumes
+                        WHERE profile_id IN (SELECT id FROM candidate_profiles WHERE slug = 'sujal')
+                        AND job_description_id IS NOT NULL
+                    ) AND user_id IS NULL;
+
+                    -- Backfill file_assets linked to sujal
+                    UPDATE file_assets
+                    SET user_id = v_operator_id
+                    WHERE profile_id IN (SELECT id FROM candidate_profiles WHERE slug = 'sujal') AND user_id IS NULL;
+                END IF;
+            END $backfill$;
         """)
     else:
         try:
